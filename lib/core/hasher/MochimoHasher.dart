@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart'; // Import the crypto package
+import 'dart:convert'; // For utf8.encode
 
 // Define a type alias for ByteArray, since Dart doesn't have a direct equivalent
 typedef ByteArray = Uint8List;
@@ -11,6 +12,7 @@ typedef ByteArray = Uint8List;
 class MochimoHasher {
   late Hash _hasher; // Use the abstract Hash class from crypto
   final String _algorithm;
+  final List<int> _buffer = []; // Buffer to accumulate data
 
   MochimoHasher({String algorithm = 'sha256'}) : _algorithm = algorithm {
     _hasher = _createHasher(algorithm);
@@ -20,10 +22,6 @@ class MochimoHasher {
     switch (algorithm.toLowerCase()) {
       case 'sha256':
         return sha256;
-      case 'sha3-512':
-        return sha3; // The crypto package uses sha3, and you can specify the length
-      case 'ripemd160':
-        return ripemd160;
       default:
         throw ArgumentError('Unsupported hash algorithm: $algorithm');
     }
@@ -42,16 +40,17 @@ class MochimoHasher {
     }
 
     final data = buffer.sublist(offset, offset + length);
-    _hasher.add(data);
+    _buffer.addAll(data); // Accumulate data in buffer
   }
 
   /**
    * Returns the final hash value
    */
   ByteArray digest() {
-    final digestBytes = _hasher.convert().bytes;
-    // Create new hasher for next use.  Important in Dart too.
+    final digestBytes = _hasher.convert(_buffer).bytes;
+    // Create new hasher for next use and clear buffer
     _hasher = _createHasher(_algorithm);
+    _buffer.clear();
     return Uint8List.fromList(digestBytes);
   }
 
@@ -74,4 +73,3 @@ class MochimoHasher {
     return hasher.digest();
   }
 }
-
