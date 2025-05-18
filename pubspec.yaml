@@ -12,6 +12,7 @@ dependencies:
   test: ^1.24.9
   flutter:
     sdk: flutter
+  base58check: ^2.0.0
 
 dev_dependencies:
   flutter_test:
