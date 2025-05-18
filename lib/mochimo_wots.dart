@@ -1,0 +1,4 @@
+/// AMochimo Wots
+class MochimoWots {
+ 
+}
