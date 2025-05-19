@@ -9,6 +9,8 @@ class TagUtils {
   TagUtils._();
 
   /// Converts an address tag (20 bytes) to a Base58 string with CRC16 checksum
+  static final Base58Codec _base58 = Base58Codec('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
+
   static String? addrTagToBase58(ByteArray? addrTag) {
     if (addrTag == null) return null;
     if (addrTag.length != 20) {
@@ -22,16 +24,14 @@ class TagUtils {
     // Convert csum to little-endian bytes
     combined[20] = csum & 0xFF;
     combined[21] = (csum >> 8) & 0xFF;
-     final base58 = Base58Codec(combined.toString());
 
-    return base58.encode(combined);
+    return _base58.encode(combined);
   }
 
   /// Validates a Base58 encoded address tag with CRC16 checksum
   static bool validateBase58Tag(String tag) {
     try {
-       final base58 = Base58Codec(tag);
-      final decoded = base58.decode(tag);
+      final decoded = _base58.decode(tag);
       if (decoded.length != 22) return false;
 
       // Get the stored checksum (last 2 bytes in little-endian)
@@ -48,16 +48,14 @@ class TagUtils {
 
   /// Converts a Base58 encoded tag string back to address tag bytes
   static ByteArray? base58ToAddrTag(String tag) {
-    try {
-      final base58 = Base58Codec(tag);
-      final decoded = base58.decode(tag);
-      if (decoded.length != 22) {
-        throw ArgumentError('Invalid base58 tag length: ${decoded.length}. Expected 22.');
-      }
-      return Uint8List.fromList(decoded.sublist(0, 20));
-    } catch (e) {
-      return null;
+    if (tag == null || tag.isEmpty) {
+      throw ArgumentError('Input tag cannot be null or empty.');
     }
+    final decoded = _base58.decode(tag);
+    if (decoded.length != 22) {
+      throw ArgumentError('Invalid base58 tag length: ${decoded.length}. Expected 22.');
+    }
+    return Uint8List.fromList(decoded.sublist(0, 20));
   }
 }
 

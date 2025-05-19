@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart'; // Import the crypto package
-import 'dart:convert'; // For utf8.encode
+// import 'dart:convert'; // For utf8.encode
 
 // Define a type alias for ByteArray, since Dart doesn't have a direct equivalent
 typedef ByteArray = Uint8List;
