@@ -17,7 +17,7 @@ class TagUtils {
       throw ArgumentError('Invalid address tag length: ${addrTag.length}. Expected 20.');
     }
 
-    final csum = CRC16.crc(addrTag, 0, 20);
+    final csum = CRC16.crc(addrTag, 0, 20); 
     final combined = Uint8List(22);
     combined.setRange(0, 20, addrTag);
 
