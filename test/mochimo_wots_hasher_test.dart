@@ -1,10 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mochimo_wots/core/hasher/MochimoHasher.dart';
 import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
+import 'package:pointycastle/digests/sha256.dart';
 
 Uint8List getNodeHash(Uint8List data) {
-  return Uint8List.fromList(sha256.convert(data).bytes);
+  final sha256 = SHA256Digest();
+  sha256.reset();
+  sha256.update(data, 0, data.length);
+  final out = Uint8List(sha256.digestSize);
+  sha256.doFinal(out, 0);
+  return out;
+}
+
+Uint8List getPointyCastleHash(Uint8List data) {
+  final sha256 = SHA256Digest();
+  sha256.reset();
+  sha256.update(data, 0, data.length);
+  final out = Uint8List(sha256.digestSize);
+  sha256.doFinal(out, 0);
+  return out;
 }
 
 void main() {
@@ -49,7 +63,7 @@ void main() {
         hasher.update(data2);
 
         final combinedData = [...data1, ...data2];
-        expect(hasher.digest(), equals(Uint8List.fromList(sha256.convert(combinedData).bytes)));
+        expect(hasher.digest(), equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
       });
 
       test('should handle mixed-size updates', () {
@@ -63,7 +77,7 @@ void main() {
         hasher.update(data3);
 
         final combinedData = [...data1, ...data2, ...data3];
-        expect(hasher.digest(), equals(Uint8List.fromList(sha256.convert(combinedData).bytes)));
+        expect(hasher.digest(), equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
       });
 
       test('should handle zero-length updates', () {
@@ -77,7 +91,7 @@ void main() {
         hasher.update(data3);
 
         final combinedData = [...data1, ...data2, ...data3];
-        expect(hasher.digest(), equals(Uint8List.fromList(sha256.convert(combinedData).bytes)));
+        expect(hasher.digest(), equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
       });
     });
 
@@ -94,7 +108,7 @@ void main() {
 
     group('edge cases', () {
       test('should handle data with undefined bytes in word boundary', () {
-        // Create data that will have undefined bytes when creating words (if the underlying impl does word-based processing)
+      
         final data = Uint8List(5); // 5 bytes
         data[0] = 0x12;
         data[1] = 0x34;

@@ -211,8 +211,8 @@ void main() {
 
         final expectedAddrHex = ByteUtils.bytesToHex(expectedAddr);
 
-        print('Calculated Expected addr: $expectedAddrHex');
-        print('Actual addr from test: $finalAddrHex');
+        // print('Calculated Expected addr: $expectedAddrHex');
+        // print('Actual addr from test: $finalAddrHex');
 
         expect(finalAddrHex.toLowerCase().trim(), equals(expectedAddrHex.toLowerCase().trim()));
       });
