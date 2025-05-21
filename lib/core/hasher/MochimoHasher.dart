@@ -1,27 +1,33 @@
 import 'dart:typed_data';
-import 'package:crypto/crypto.dart'; // Import the crypto package
-// import 'dart:convert'; // For utf8.encode
+import 'package:pointycastle/digests/sha3.dart';
+import 'package:pointycastle/digests/ripemd160.dart';
+import 'package:pointycastle/digests/sha256.dart';
+import 'package:pointycastle/digests/sha512.dart';
 
 // Define a type alias for ByteArray, since Dart doesn't have a direct equivalent
 typedef ByteArray = Uint8List;
 
 /**
  * Dart implementation of MochimoHasher
- * Uses the crypto package for hash implementations
+ * Uses the pointycastle package for hash implementations
  */
 class MochimoHasher {
-  late Hash _hasher; // Use the abstract Hash class from crypto
+  late dynamic _hasher; // pointycastle Digest
   final String _algorithm;
   final List<int> _buffer = []; // Buffer to accumulate data
 
-  MochimoHasher({String algorithm = 'sha256'}) : _algorithm = algorithm {
-    _hasher = _createHasher(algorithm);
+  MochimoHasher({String algorithm = 'sha256'}) : _algorithm = algorithm.toLowerCase() {
+    _hasher = _createHasher(_algorithm);
   }
 
-  Hash _createHasher(String algorithm) {
-    switch (algorithm.toLowerCase()) {
+  dynamic _createHasher(String algorithm) {
+    switch (algorithm) {
       case 'sha256':
-        return sha256;
+        return SHA256Digest();
+      case 'sha3-512':
+        return SHA3Digest(512);
+      case 'ripemd160':
+        return RIPEMD160Digest();
       default:
         throw ArgumentError('Unsupported hash algorithm: $algorithm');
     }
@@ -31,7 +37,7 @@ class MochimoHasher {
    * Updates the hash with the given data
    */
   void update(ByteArray buffer, [int offset = 0, int? length]) {
-    length ??= buffer.length; // Default length to buffer.length if not provided
+    length ??= buffer.length;
     if (offset < 0 || offset > buffer.length) {
       throw ArgumentError('Invalid offset');
     }
@@ -40,18 +46,23 @@ class MochimoHasher {
     }
 
     final data = buffer.sublist(offset, offset + length);
-    _buffer.addAll(data); // Accumulate data in buffer
+    if (_buffer.isEmpty) {
+      _hasher.reset();
+    }
+    _buffer.addAll(data);
   }
 
   /**
    * Returns the final hash value
    */
   ByteArray digest() {
-    final digestBytes = _hasher.convert(_buffer).bytes;
-    // Create new hasher for next use and clear buffer
-    _hasher = _createHasher(_algorithm);
+    final data = Uint8List.fromList(_buffer);
+    _hasher.update(data, 0, data.length);
+    final digestBytes = Uint8List(_hasher.digestSize);
+    _hasher.doFinal(digestBytes, 0);
     _buffer.clear();
-    return Uint8List.fromList(digestBytes);
+    _hasher.reset();
+    return digestBytes;
   }
 
   /**
