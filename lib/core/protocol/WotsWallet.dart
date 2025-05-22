@@ -23,7 +23,7 @@ class WOTSWallet {
     if (secret != null && secret!.length != 32) {
       throw ArgumentError('Invalid secret length');
     }
-    if (addrTag != null && addrTag!.length != 20) {
+    if (addrTag != null && addrTag!.length != WotsAddress.ADDR_TAG_LEN) {
       throw ArgumentError('Invalid address tag');
     }
 
@@ -149,36 +149,36 @@ class WOTSWallet {
     return 'Empty address';
   }
 
-    // static WOTSWallet create(String name, Uint8List secret, [Uint8List? v3tag, void Function(Uint8List)? randomGenerator]) {
-    //   if (secret.length != 32) {
-    //     throw ArgumentError('Invalid secret length');
-    //   }
+    static WOTSWallet create(String name, Uint8List secret, [Uint8List? v3tag, void Function(Uint8List)? randomGenerator]) {
+      if (secret.length != 32) {
+        throw ArgumentError('Invalid secret length');
+      }
 
-    //   void deterministicRandomGenerator(Uint8List bytes) {
-    //     for (int i = 0; i < bytes.length; i++) {
-    //       bytes[i] = 0x42;
-    //     }
-    //   }
+      void deterministicRandomGenerator(Uint8List bytes) {
+        for (int i = 0; i < bytes.length; i++) {
+          bytes[i] = 0x42;
+        }
+      }
 
-    //   Uint8List privateSeed = secret;
-    //   Uint8List? sourcePK;
-    //   final defaultTag = Uint8List.fromList([0x42, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00]);
-    //   if (randomGenerator != null) {
-    //     sourcePK = WOTS.generateRandomAddress(defaultTag, secret, randomGenerator);
-    //   } else {
-    //     final components = componentsGenerator(secret);
-    //     privateSeed = components['private_seed']!;
-    //     sourcePK = WOTS.generateAddress(defaultTag, privateSeed, componentsGenerator, deterministicRandomGenerator);
-    //   }
-    //   if (sourcePK.length != 2208) {
-    //     throw StateError('Invalid sourcePK length');
-    //   }
-    //   Uint8List addrTag = v3tag ?? WotsAddress.wotsAddressFromBytes(sourcePK.sublist(0, 2144)).getTag();
-    //   if (addrTag.length != 20) {
-    //     throw StateError('Invalid tag');
-    //   }
-    //   return WOTSWallet(name: name, wots: sourcePK, addrTag: addrTag, secret: privateSeed);
-    // }
+      Uint8List privateSeed = secret;
+      Uint8List? sourcePK;
+      final defaultTag = Uint8List.fromList([0x42, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00]);
+      if (randomGenerator != null) {
+        sourcePK = WOTS.generateRandomAddress(defaultTag, secret, randomGenerator);
+      } else {
+        final components = componentsGenerator(secret);
+        privateSeed = components['private_seed']!;
+        sourcePK = WOTS.generateAddress(defaultTag, privateSeed, componentsGenerator);
+      }
+      if (sourcePK.length != 2208) {
+        throw StateError('Invalid sourcePK length');
+      }
+      Uint8List addrTag = v3tag ?? WotsAddress.wotsAddressFromBytes(sourcePK.sublist(0, 2144)).getTag();
+      if (addrTag.length != WotsAddress.ADDR_TAG_LEN) {
+        throw StateError('Invalid tag');
+      }
+      return WOTSWallet(name: name, wots: sourcePK, addrTag: addrTag, secret: privateSeed);
+    }
 
   Map<String, dynamic> toJson() {
     return {
