@@ -19,21 +19,21 @@ void main() {
       });
 
       test('should handle tag operations correctly', () {
-        final tag = Uint8List(20)..fillRange(0, 20, 0x12);
+        final tag = Uint8List(WotsAddress.ADDR_TAG_LEN)..fillRange(0, WotsAddress.ADDR_TAG_LEN, 0x12);
         wotsAddr.setTag(tag);
 
         final retrievedTag = wotsAddr.getTag();
-        expect(retrievedTag.length, equals(20));
+        expect(retrievedTag.length, equals(WotsAddress.ADDR_TAG_LEN));
         expect(ByteUtils.areEqual(retrievedTag, tag), isTrue);
       });
 
       test('should handle address operations correctly', () {
-        final addrHash = Uint8List(20)..fillRange(0, 20, 0x34);
+        final addrHash = Uint8List(WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN)..fillRange(0, WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN, 0x34);
         wotsAddr.setAddrHash(addrHash);
 
         final retrievedAddrHash = wotsAddr.getAddrHash();
         // Should only get the non-tag portion
-        expect(retrievedAddrHash.length, equals(20)); // TXADDRLEN - ADDR_TAG_LEN = 20
+        expect(retrievedAddrHash.length, equals(WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN)); // TXADDRLEN - ADDR_TAG_LEN
         // Verify the content as well
         expect(ByteUtils.areEqual(retrievedAddrHash, addrHash), isTrue);
       });
@@ -52,9 +52,9 @@ void main() {
       });
 
       test('should serialize to bytes correctly', () {
-        final tag = Uint8List(20)..fillRange(0, 20, 0x12);
+        final tag = Uint8List(WotsAddress.ADDR_TAG_LEN)..fillRange(0, WotsAddress.ADDR_TAG_LEN, 0x12);
        
-        final addrHashPart = Uint8List(20)..fillRange(0, 20, 0x34);
+        final addrHashPart = Uint8List(WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN)..fillRange(0, WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN, 0x34);
 
         final testAmount = BigInt.parse("123456789");
         final amountBytes = Uint8List(8);
@@ -67,9 +67,9 @@ void main() {
 
         final bytes = wotsAddr.bytes();
         expect(bytes.length, equals(48)); // TXADDRLEN (40) + TXAMOUNT (8)
-        expect(ByteUtils.areEqual(bytes.sublist(0, 20), tag), isTrue); // Check tag part
-        expect(ByteUtils.areEqual(bytes.sublist(20, 40), addrHashPart), isTrue); // Check addrHash part
-        expect(ByteUtils.areEqual(bytes.sublist(40, 48), amountBytes), isTrue); // Check amount part
+        expect(ByteUtils.areEqual(bytes.sublist(0, WotsAddress.ADDR_TAG_LEN), tag), isTrue); // Check tag part
+        expect(ByteUtils.areEqual(bytes.sublist(WotsAddress.ADDR_TAG_LEN, WotsAddress.TXADDRLEN), addrHashPart), isTrue); // Check addrHash part
+        expect(ByteUtils.areEqual(bytes.sublist(WotsAddress.TXADDRLEN, 48), amountBytes), isTrue); // Check amount part
       });
     });
 
@@ -129,13 +129,17 @@ void main() {
 
     group('address generation', () {
       test('should generate implicit address correctly', () {
-        final tag = Uint8List(20)..fillRange(0, 20, 0x12);
+        final tag = Uint8List(WotsAddress.ADDR_TAG_LEN)..fillRange(0, WotsAddress.ADDR_TAG_LEN, 0x12);
         final addr = WotsAddress.addrFromImplicit(tag);
 
-        expect(addr.length, equals(40));
-        expect(ByteUtils.areEqual(addr.sublist(0, 20), tag), isTrue);
-        // The second part of the address should also be a copy of the tag
-        expect(ByteUtils.areEqual(addr.sublist(20, 40), tag), isTrue);
+        expect(addr.length, equals(WotsAddress.TXADDRLEN));
+        expect(ByteUtils.areEqual(addr.sublist(0, WotsAddress.ADDR_TAG_LEN), tag), isTrue);
+        // The second part of the address should be the tag bytes repeated to fill the remaining length
+        final expectedSecondPart = Uint8List(WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN);
+        for (int i = 0; i < expectedSecondPart.length; i++) {
+          expectedSecondPart[i] = tag[i % tag.length];
+        }
+        expect(ByteUtils.areEqual(addr.sublist(WotsAddress.ADDR_TAG_LEN, WotsAddress.TXADDRLEN), expectedSecondPart), isTrue);
       });
 
       test('should generate hash correctly', () {
@@ -207,7 +211,11 @@ void main() {
        
         final expectedAddr = Uint8List(WotsAddress.TXADDRLEN);
         expectedAddr.setAll(0, ripemdHashResult);
-        expectedAddr.setAll(WotsAddress.ADDR_TAG_LEN, ripemdHashResult);
+        // Fill the remaining part of the address by repeating the ripemdHashResult bytes
+        int remainingLength = WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN;
+        for (int i = 0; i < remainingLength; i++) {
+          expectedAddr[WotsAddress.ADDR_TAG_LEN + i] = ripemdHashResult[i % ripemdHashResult.length];
+        }
 
         final expectedAddrHex = ByteUtils.bytesToHex(expectedAddr);
 

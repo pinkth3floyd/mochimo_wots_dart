@@ -12,7 +12,7 @@ typedef ByteArray = Uint8List;
 class WotsAddress {
   // Constants
   static const int TXADDRLEN = 40; 
-  static const int ADDR_TAG_LEN = 20; 
+  static const int ADDR_TAG_LEN = 12; 
   static const int WOTS_PK_LEN = 2144;
   static const int TXAMOUNT = 8;
   static const int SHA3LEN512 = 64; 
@@ -64,7 +64,7 @@ class WotsAddress {
   /// into the address hash section.
   /// @param addrHash The byte array containing the new address hash.
   void setAddrHash(ByteArray addrHash) {
-    _address.setAll(ADDR_TAG_LEN, addrHash.sublist(0, ADDR_TAG_LEN));
+    _address.setAll(ADDR_TAG_LEN, addrHash.sublist(0, TXADDRLEN - ADDR_TAG_LEN));
   }
 
   /// Sets the amount from a byte array.
@@ -141,9 +141,11 @@ class WotsAddress {
     final addr = Uint8List(TXADDRLEN);
     // Copy the first ADDR_TAG_LEN bytes of the tag to the beginning of addr
     addr.setAll(0, tag.sublist(0, ADDR_TAG_LEN));
-    // Copy the remaining part of the tag (TXADDRLEN - ADDR_TAG_LEN)
-    // from the beginning of the tag, starting at ADDR_TAG_LEN in addr.
-    addr.setAll(ADDR_TAG_LEN, tag.sublist(0, TXADDRLEN - ADDR_TAG_LEN));
+    // Fill the remaining part of the address by repeating the tag bytes
+    int remainingLength = TXADDRLEN - ADDR_TAG_LEN;
+    for (int i = 0; i < remainingLength; i++) {
+      addr[ADDR_TAG_LEN + i] = tag[i % tag.length];
+    }
     return addr;
   }
 
