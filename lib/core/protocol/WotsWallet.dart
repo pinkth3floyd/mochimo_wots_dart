@@ -54,7 +54,7 @@ class WOTSWallet {
       wots?.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64);
 
   Uint8List? getWotsTag() =>
-      wots?.sublist(WOTS.WOTSSIGBYTES + 64 - 12, WOTS.WOTSSIGBYTES + 64);
+      wots?.sublist(WOTS.WOTSSIGBYTES + 64 - WotsAddress.ADDR_TAG_LEN, WOTS.WOTSSIGBYTES + 64);
 
   Uint8List? getAddress() =>
       mochimoAddr != null ? Uint8List.fromList(mochimoAddr!.bytes().sublist(0, 40)) : null;
@@ -162,7 +162,7 @@ class WOTSWallet {
 
       Uint8List privateSeed = secret;
       Uint8List? sourcePK;
-      final defaultTag = Uint8List.fromList([0x42, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00]);
+      final defaultTag = Uint8List(12)..fillRange(0, 12, 0x42); // Use 12-byte tag
       if (randomGenerator != null) {
         sourcePK = WOTS.generateRandomAddress(defaultTag, secret, randomGenerator);
       } else {

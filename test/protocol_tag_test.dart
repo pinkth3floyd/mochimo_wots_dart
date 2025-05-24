@@ -51,6 +51,36 @@ void main() {
           )),
         );
       });
+
+      test('should handle 12-byte tag boundary correctly', () {
+        final address = Uint8List(2208);
+        final expectedTag = Uint8List(12);
+        for (int i = 0; i < 12; i++) {
+          expectedTag[i] = i;
+        }
+        address.setAll(2208 - 12, expectedTag);
+        
+        final extractedTag = Tag.getTag(address);
+        expect(extractedTag.length, equals(12));
+        for (int i = 0; i < 12; i++) {
+          expect(extractedTag[i], equals(i));
+        }
+      });
+
+      test('should preserve all 12 bytes of tag data', () {
+        final address = Uint8List(2208);
+        final expectedTag = Uint8List(12);
+        for (int i = 0; i < 12; i++) {
+          expectedTag[i] = 255 - i; // Use distinct values
+        }
+        address.setAll(2208 - Tag.TAG_LENGTH, expectedTag);
+        
+        final extractedTag = Tag.getTag(address);
+        expect(extractedTag.length, equals(12));
+        for (int i = 0; i < 12; i++) {
+          expect(extractedTag[i], equals(255 - i));
+        }
+      });
     });
 
     group('tagging', () {
