@@ -1,6 +1,9 @@
 # Mochimo WOTS for Dart
 
-A Dart implementation of the Mochimo WOTS (Winternitz One-Time Signature) protocol, providing cryptographic functionality for the Mochimo cryptocurrency network.
+A Dart implementation of the [Mochimo](https://mochimo.org) WOTS (Winternitz One-Time Signature) protocol, providing cryptographic functionality for the Mochimo cryptocurrency network.
+
+Thank You [Aatma(Anuj Wagle)](https://github.com/wagleanuj) for supporting. 
+Inspired by TypeScript implementation of wots by Anuj [Repo](https://github.com/wagleanuj/mochimo-wots)
 
 ## Features
 
@@ -13,8 +16,6 @@ A Dart implementation of the Mochimo WOTS (Winternitz One-Time Signature) protoc
 
 ## Installation
 
-Add this to your package's `pubspec.yaml` file:
-
 ```yaml
 dependencies:
   mochimo_wots: ^0.1.0
@@ -25,6 +26,7 @@ Then run:
 ```bash
 dart pub get
 ```
+
 
 ## Usage
 
