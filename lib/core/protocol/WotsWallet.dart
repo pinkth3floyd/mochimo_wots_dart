@@ -6,103 +6,175 @@ import 'package:mochimo_wots/core/protocol/WotsAddress.dart';
 import 'package:mochimo_wots/core/utils/TagUtils.dart';
 
 class WOTSWallet {
-  final String? name;
-  final Uint8List? wots;
+  String? name;
+  Uint8List? _wots;
   String? wotsAddrHex;
-  final Uint8List? addrTag;
+  Uint8List? _addrTag;
   String? addrTagHex;
-  final Uint8List? secret;
+  Uint8List? _secret;
   WotsAddress? mochimoAddr;
 
   WOTSWallet({
     this.name,
-    this.wots,
-    this.addrTag,
-    this.secret,
+    Uint8List? wots,
+    Uint8List? addrTag,
+    Uint8List? secret,
   }) {
-    if (secret != null && secret!.length != 32) {
+    if (secret != null && secret.length != 32) {
       throw ArgumentError('Invalid secret length');
     }
-    if (addrTag != null && addrTag!.length != WotsAddress.ADDR_TAG_LEN) {
+    if (addrTag != null && addrTag.length != WotsAddress.ADDR_TAG_LEN) {
       throw ArgumentError('Invalid address tag');
     }
 
-    // Create copies of the arrays
-    wotsAddrHex = wots != null ? ByteUtils.bytesToHex(wots!) : null;
-    addrTagHex = addrTag != null ? ByteUtils.bytesToHex(addrTag!) : null;
-    mochimoAddr = (wots != null)
-        ? WotsAddress.wotsAddressFromBytes(wots!.sublist(0, WOTS.WOTSSIGBYTES))
+    // Store copies of the arrays
+    _wots = wots != null ? Uint8List.fromList(wots) : null;
+    _addrTag = addrTag != null ? Uint8List.fromList(addrTag) : null;
+    _secret = secret != null ? Uint8List.fromList(secret) : null;
+
+    // Create hex strings
+    wotsAddrHex = _wots != null ? ByteUtils.bytesToHex(_wots!) : null;
+    addrTagHex = _addrTag != null ? ByteUtils.bytesToHex(_addrTag!) : null;
+    mochimoAddr = (_wots != null)
+        ? WotsAddress.wotsAddressFromBytes(_wots!.sublist(0, WOTS.WOTSSIGBYTES))
         : null;
-    if (mochimoAddr != null && addrTag != null) {
-      mochimoAddr!.setTag(addrTag!);
+    if (mochimoAddr != null && _addrTag != null) {
+      mochimoAddr!.setTag(_addrTag!);
     }
   }
 
   String? getName() => name;
 
-  Uint8List? getWots() => wots != null ? Uint8List.fromList(wots!) : null;
+  Uint8List? getWots() => _wots != null ? Uint8List.fromList(_wots!) : null;
 
   String? getWotsHex() => wotsAddrHex;
 
   Uint8List? getWotsPk() =>
-      wots != null ? Uint8List.fromList(wots!.sublist(0, WOTS.WOTSSIGBYTES)) : null;
+      _wots != null ? Uint8List.fromList(_wots!.sublist(0, WOTS.WOTSSIGBYTES)) : null;
 
   Uint8List? getWotsPubSeed() =>
-      wots?.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32);
+      _wots != null ? _wots!.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32) : null;
 
   Uint8List? getWotsAdrs() =>
-      wots?.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64);
+      _wots != null ? _wots!.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64) : null;
 
   Uint8List? getWotsTag() =>
-      wots?.sublist(WOTS.WOTSSIGBYTES + 64 - WotsAddress.ADDR_TAG_LEN, WOTS.WOTSSIGBYTES + 64);
+      _wots != null ? _wots!.sublist(WOTS.WOTSSIGBYTES + 64 - WotsAddress.ADDR_TAG_LEN, WOTS.WOTSSIGBYTES + 64) : null;
 
   Uint8List? getAddress() =>
       mochimoAddr != null ? Uint8List.fromList(mochimoAddr!.bytes().sublist(0, 40)) : null;
 
-  Uint8List? getAddrTag() => addrTag != null ? Uint8List.fromList(addrTag!) : null;
+  Uint8List? getAddrTag() => _addrTag != null ? Uint8List.fromList(_addrTag!) : null;
 
   String? getAddrTagHex() => addrTagHex;
 
   String? getAddrTagBase58() =>
-      addrTag != null ? TagUtils.addrTagToBase58(getAddrTag()!) : null;
+      _addrTag != null ? TagUtils.addrTagToBase58(getAddrTag()!) : null;
 
   Uint8List? getAddrHash() => mochimoAddr?.getAddrHash();
 
-  Uint8List? getSecret() => secret != null ? Uint8List.fromList(secret!) : null;
+  Uint8List? getSecret() => _secret != null ? Uint8List.fromList(_secret!) : null;
 
-  bool hasSecret() => secret != null;
+  bool hasSecret() => _secret != null;
 
   Uint8List sign(Uint8List data) {
-    final sourceSeed = secret;
-    final sourceWots = wots;
-    if (sourceSeed == null || sourceWots == null) {
+    if (_secret == null || _wots == null) {
       throw StateError('Cannot sign without secret key or address');
     }
-    if (sourceSeed.length != 32) {
-      throw StateError('Invalid sourceSeed length, expected 32, got ${sourceSeed.length}');
+    if (_secret!.length != 32) {
+      throw StateError('Invalid sourceSeed length, expected 32, got ${_secret!.length}');
     }
-    if (sourceWots.length != 2208) {
-      throw StateError('Invalid sourceWots length, expected 2208, got ${sourceWots.length}');
+    if (_wots!.length != 2208) {
+      throw StateError('Invalid sourceWots length, expected 2208, got ${_wots!.length}');
     }
-    final pk = sourceWots.sublist(0, WOTS.WOTSSIGBYTES);
-    final pubSeed = sourceWots.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32);
-    final rnd2 = sourceWots.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64);
+    final pk = _wots!.sublist(0, WOTS.WOTSSIGBYTES);
+    final pubSeed = _wots!.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32);
+    final rnd2 = _wots!.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64);
     final sig = Uint8List(WOTS.WOTSSIGBYTES);
-    WOTS.wotsSign(sig, data, sourceSeed, pubSeed, 0, rnd2);
+    WOTS.wotsSign(sig, data, _secret!, pubSeed, 0, rnd2);
     return sig;
   }
 
   bool verify(Uint8List message, Uint8List signature) {
-    if (wots == null) {
+    if (_wots == null) {
       throw StateError('Cannot verify without public key (address)');
     }
-    final srcAddr = wots!;
-    final pk = srcAddr.sublist(0, WOTS.WOTSSIGBYTES);
-    final pubSeed = srcAddr.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32);
-    final rnd2 = srcAddr.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64);
+    final pk = _wots!.sublist(0, WOTS.WOTSSIGBYTES);
+    final pubSeed = _wots!.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32);
+    final rnd2 = _wots!.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64);
 
     final computedPublicKey = WOTS.wotsPkFromSig(signature, message, pubSeed, rnd2);
     return ByteUtils.areEqual(computedPublicKey, pk);
+  }
+
+  void clear() {
+    if (_secret != null) {
+      ByteUtils.clear(_secret!);
+      _secret = null;
+    }
+    if (_wots != null) {
+      ByteUtils.clear(_wots!);
+      _wots = null;
+    }
+    if (_addrTag != null) {
+      ByteUtils.clear(_addrTag!);
+      _addrTag = null;
+    }
+    addrTagHex = null;
+    wotsAddrHex = null;
+    mochimoAddr = null;
+  }
+
+  @override
+  String toString() {
+    if (wotsAddrHex != null) {
+      return '${wotsAddrHex!.substring(0, 32)}...${wotsAddrHex!.substring(wotsAddrHex!.length - 24)}';
+    } else if (addrTagHex != null) {
+      return 'tag-$addrTagHex';
+    }
+    return 'Empty address';
+  }
+
+  static WOTSWallet create(String name, Uint8List secret, [Uint8List? v3tag, void Function(Uint8List)? randomGenerator]) {
+    if (secret.length != 32) {
+      throw ArgumentError('Invalid secret length');
+    }
+
+    void deterministicRandomGenerator(Uint8List bytes) {
+      for (int i = 0; i < bytes.length; i++) {
+        bytes[i] = 0x42;
+      }
+    }
+
+    Uint8List privateSeed = secret;
+    Uint8List? sourcePK;
+    final defaultTag = Uint8List(12)..fillRange(0, 12, 0x42); // Use 12-byte tag
+    if (randomGenerator != null) {
+      sourcePK = WOTS.generateRandomAddress(defaultTag, secret, randomGenerator);
+    } else {
+      final components = componentsGenerator(secret);
+      privateSeed = components['private_seed']!;
+      sourcePK = WOTS.generateAddress(defaultTag, privateSeed, componentsGenerator);
+    }
+    if (sourcePK.length != 2208) {
+      throw StateError('Invalid sourcePK length');
+    }
+    Uint8List addrTag = v3tag ?? WotsAddress.wotsAddressFromBytes(sourcePK.sublist(0, 2144)).getTag();
+    if (addrTag.length != WotsAddress.ADDR_TAG_LEN) {
+      throw StateError('Invalid tag');
+    }
+    return WOTSWallet(name: name, wots: sourcePK, addrTag: addrTag, secret: privateSeed);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'wots': _wots,
+      'addrTag': _addrTag,
+      'secret': _secret,
+      'addrTagHex': addrTagHex,
+      'wotsAddrHex': wotsAddrHex,
+    };
   }
 
   static Map<String, Uint8List> componentsGenerator(Uint8List wotsSeed) {
@@ -127,67 +199,6 @@ class WOTSWallet {
       'private_seed': privateSeed,
       'public_seed': publicSeed,
       'addr_seed': addrSeed,
-    };
-  }
-
-  void clear() {
-    if (secret != null) ByteUtils.clear(secret!);
-    if (wots != null) ByteUtils.clear(wots!);
-    if (addrTag != null) ByteUtils.clear(addrTag!);
-    addrTagHex = null;
-    wotsAddrHex = null;
-    mochimoAddr = null;
-  }
-
-  @override
-  String toString() {
-    if (wotsAddrHex != null) {
-      return '${wotsAddrHex!.substring(0, 32)}...${wotsAddrHex!.substring(wotsAddrHex!.length - 24)}';
-    } else if (addrTagHex != null) {
-      return 'tag-$addrTagHex';
-    }
-    return 'Empty address';
-  }
-
-    static WOTSWallet create(String name, Uint8List secret, [Uint8List? v3tag, void Function(Uint8List)? randomGenerator]) {
-      if (secret.length != 32) {
-        throw ArgumentError('Invalid secret length');
-      }
-
-      void deterministicRandomGenerator(Uint8List bytes) {
-        for (int i = 0; i < bytes.length; i++) {
-          bytes[i] = 0x42;
-        }
-      }
-
-      Uint8List privateSeed = secret;
-      Uint8List? sourcePK;
-      final defaultTag = Uint8List(12)..fillRange(0, 12, 0x42); // Use 12-byte tag
-      if (randomGenerator != null) {
-        sourcePK = WOTS.generateRandomAddress(defaultTag, secret, randomGenerator);
-      } else {
-        final components = componentsGenerator(secret);
-        privateSeed = components['private_seed']!;
-        sourcePK = WOTS.generateAddress(defaultTag, privateSeed, componentsGenerator);
-      }
-      if (sourcePK.length != 2208) {
-        throw StateError('Invalid sourcePK length');
-      }
-      Uint8List addrTag = v3tag ?? WotsAddress.wotsAddressFromBytes(sourcePK.sublist(0, 2144)).getTag();
-      if (addrTag.length != WotsAddress.ADDR_TAG_LEN) {
-        throw StateError('Invalid tag');
-      }
-      return WOTSWallet(name: name, wots: sourcePK, addrTag: addrTag, secret: privateSeed);
-    }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'wots': wots,
-      'addrTag': addrTag,
-      'secret': secret,
-      'addrTagHex': addrTagHex,
-      'wotsAddrHex': wotsAddrHex,
     };
   }
 }
