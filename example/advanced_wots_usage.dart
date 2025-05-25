@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:mochimo_wots/core/protocol/wots.dart' show WOTS;
 import 'package:mochimo_wots/mochimo_wots.dart';
+import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 import 'dart:convert';
 
 // Custom components generator for deterministic addresses
@@ -19,23 +20,29 @@ Map<String, Uint8List> myComponentsGenerator(Uint8List seed) {
 
 // Example implementation of private seed generation
 Uint8List _generatePrivateSeed(Uint8List seed) {
-  final hmac = Hmac(sha256, seed);
-  final digest = hmac.convert(utf8.encode('private'));
-  return Uint8List.fromList(digest.bytes);
+  // Concatenate seed with 'private' string
+  final input = Uint8List(seed.length + 7);
+  input.setRange(0, seed.length, seed);
+  input.setRange(seed.length, seed.length + 7, utf8.encode('private'));
+  return MochimoHasher.hash(input);
 }
 
 // Example implementation of public seed generation
 Uint8List _generatePublicSeed(Uint8List seed) {
-  final hmac = Hmac(sha256, seed);
-  final digest = hmac.convert(utf8.encode('public'));
-  return Uint8List.fromList(digest.bytes);
+  // Concatenate seed with 'public' string
+  final input = Uint8List(seed.length + 6);
+  input.setRange(0, seed.length, seed);
+  input.setRange(seed.length, seed.length + 6, utf8.encode('public'));
+  return MochimoHasher.hash(input);
 }
 
 // Example implementation of address seed generation
 Uint8List _generateAddressSeed(Uint8List seed) {
-  final hmac = Hmac(sha256, seed);
-  final digest = hmac.convert(utf8.encode('address'));
-  return Uint8List.fromList(digest.bytes);
+  // Concatenate seed with 'address' string
+  final input = Uint8List(seed.length + 7);
+  input.setRange(0, seed.length, seed);
+  input.setRange(seed.length, seed.length + 7, utf8.encode('address'));
+  return MochimoHasher.hash(input);
 }
 
 void main() {

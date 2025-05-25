@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:mochimo_wots/mochimo_wots.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   print('WOTS Wallet Example\n');
@@ -9,20 +10,37 @@ void main() {
   final tag = Uint8List(12)..fillRange(0, 12, 0x34);
   
   print('Creating wallet with:');
-  print('Secret (first 8 bytes): ${_bytesToHex(secret.sublist(0, 8))}...');
-  print('Tag: ${_bytesToHex(tag)}');
+  print('Secret (first 8 bytes): ${ByteUtils.bytesToHex(secret.sublist(0, 8))}...');
+  print('Tag: ${ByteUtils.bytesToHex(tag)}');
   
   // Create the wallet
-  final wallet = WOTSWallet.create("Test Wallet", secret, tag);
+  final wallet = WOTSWallet(
+    name: "Test Wallet",
+    secret: secret,
+    addrTag: tag
+  );
   print('\nWallet created successfully!');
 
   // Get the public key (2208 bytes)
   final address = wallet.getAddress();
+  if (address == null) {
+    print('Error: Could not generate wallet address');
+    return;
+  }
+
   print('\nWallet information:');
-  print('Name: ${wallet.name}');
-  print('Address (first 32 bytes): ${_bytesToHex(address.sublist(0, 32))}...');
-  print('WOTS Hex (first 32 bytes): ${wallet.getWotsHex().substring(0, 64)}...');
-  print('Tag Hex: ${wallet.getAddrTagHex()}');
+  print('Name: ${wallet.getName()}');
+  print('Address (first 32 bytes): ${ByteUtils.bytesToHex(address.sublist(0, 32))}...');
+  
+  final wotsHex = wallet.getWotsHex();
+  if (wotsHex != null) {
+    print('WOTS Hex (first 32 bytes): ${wotsHex.substring(0, 64)}...');
+  }
+  
+  final tagHex = wallet.getAddrTagHex();
+  if (tagHex != null) {
+    print('Tag Hex: $tagHex');
+  }
 
   // Demonstrate address validation
   print('\nValidating address...');
@@ -31,7 +49,11 @@ void main() {
 
   // Show tag extraction
   final extractedTag = wallet.getWotsTag();
-  print('\nExtracted tag matches original: ${_compareBytes(tag, extractedTag) ? 'Yes ✓' : 'No ✗'}');
+  if (extractedTag != null) {
+    print('\nExtracted tag matches original: ${ByteUtils.areEqual(tag, extractedTag) ? 'Yes ✓' : 'No ✗'}');
+  } else {
+    print('\nCould not extract tag from wallet');
+  }
 }
 
 // Helper function to convert bytes to hex string

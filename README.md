@@ -27,13 +27,14 @@ Then run:
 dart pub get
 ```
 
-
 ## Usage
 
 ### WOTS Operations
 
 ```dart
+import 'dart:typed_data';
 import 'package:mochimo_wots/mochimo_wots.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   // Generate a valid WOTS address
@@ -52,20 +53,39 @@ void main() {
   // Tag the address
   final tagBytes = Uint8List(12)..fillRange(0, 12, 0x12);
   final taggedSourceAddr = Tag.tag(sourceAddress, tagBytes);
+  
+  // Display the address
+  print('Address: ${ByteUtils.bytesToHex(taggedSourceAddr)}');
 }
 ```
 
 ### Advanced WOTS Usage
 
 ```dart
+import 'dart:typed_data';
 import 'package:mochimo_wots/mochimo_wots.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
+import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 
 // Custom components generator for deterministic addresses
 Map<String, Uint8List> myComponentsGenerator(Uint8List seed) {
+  // Concatenate seed with identifiers and hash
+  final privateSeedInput = Uint8List(seed.length + 7);
+  privateSeedInput.setRange(0, seed.length, seed);
+  privateSeedInput.setRange(seed.length, seed.length + 7, utf8.encode('private'));
+  
+  final publicSeedInput = Uint8List(seed.length + 6);
+  publicSeedInput.setRange(0, seed.length, seed);
+  publicSeedInput.setRange(seed.length, seed.length + 6, utf8.encode('public'));
+  
+  final addrSeedInput = Uint8List(seed.length + 7);
+  addrSeedInput.setRange(0, seed.length, seed);
+  addrSeedInput.setRange(seed.length, seed.length + 7, utf8.encode('address'));
+
   return {
-    'private_seed': generatePrivateSeed(seed),
-    'public_seed': generatePublicSeed(seed),
-    'addr_seed': generateAddressSeed(seed)
+    'private_seed': MochimoHasher.hash(privateSeedInput),
+    'public_seed': MochimoHasher.hash(publicSeedInput),
+    'addr_seed': MochimoHasher.hash(addrSeedInput)
   };
 }
 
@@ -79,33 +99,67 @@ void main() {
   // Validate address
   final isValid = WOTS.isValid(secret, address);
   print('Address valid: $isValid');
+  print('Address: ${ByteUtils.bytesToHex(address)}');
 }
 ```
 
 ### ByteBuffer Operations
 
 ```dart
+import 'dart:typed_data';
 import 'package:mochimo_wots/mochimo_wots.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   // Create a new buffer
-  final buffer = ByteBuffer.allocate(1024);
+  final buffer = ByteBuffer.allocate(32);
 
-  // Write data
+  // Write data in different byte orders
+  buffer.order(ByteOrder.BIG_ENDIAN)
+        .putInt(0x12345678);
+  
   buffer.order(ByteOrder.LITTLE_ENDIAN)
-        .putInt(0x12345678)
-        .put(Uint8List.fromList([1, 2, 3, 4]));
+        .putInt(0x9ABCDEF0);
+  
+  buffer.put(Uint8List.fromList([1, 2, 3, 4]));
 
-  // Read data
-  final data = Uint8List(4);
-  buffer.rewind().get(data);
+  // Read data back
+  buffer.rewind();
+  buffer.order(ByteOrder.BIG_ENDIAN);
+  final int1 = _readIntFromBuffer(buffer, ByteOrder.BIG_ENDIAN);
+  
+  buffer.order(ByteOrder.LITTLE_ENDIAN);
+  final int2 = _readIntFromBuffer(buffer, ByteOrder.LITTLE_ENDIAN);
+  
+  final bytes = Uint8List(4);
+  buffer.get(bytes);
+  
+  print('Read values:');
+  print('First int (BE): ${ByteUtils.toHexString(int1)}');
+  print('Second int (LE): ${ByteUtils.toHexString(int2)}');
+  print('Bytes: ${ByteUtils.bytesToHex(bytes)}');
+}
+
+int _readIntFromBuffer(ByteBuffer buffer, ByteOrder order) {
+  final b1 = buffer.get_();
+  final b2 = buffer.get_();
+  final b3 = buffer.get_();
+  final b4 = buffer.get_();
+  
+  if (order == ByteOrder.BIG_ENDIAN) {
+    return (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
+  } else {
+    return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
+  }
 }
 ```
 
 ### Creating a WOTS Wallet
 
 ```dart
+import 'dart:typed_data';
 import 'package:mochimo_wots/mochimo_wots.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   // Create a secret (32 bytes)
@@ -113,42 +167,67 @@ void main() {
   final tag = Uint8List(12)..fillRange(0, 12, 0x34);
   
   // Create the wallet
-  final wallet = WOTSWallet.create("Test Wallet", secret, tag);
+  final wallet = WOTSWallet(
+    name: "Test Wallet",
+    secret: secret,
+    addrTag: tag
+  );
 
   // Get the public key (2208 bytes)
   final address = wallet.getAddress();
-  print('Address: ${wallet.getWotsHex()}');
+  if (address == null) {
+    print('Error: Could not generate wallet address');
+    return;
+  }
 
-  // Get the tag
-  print('Tag: ${wallet.getAddrTagHex()}');
+  print('Address: ${ByteUtils.bytesToHex(address)}');
+  
+  final tagHex = wallet.getAddrTagHex();
+  if (tagHex != null) {
+    print('Tag: $tagHex');
+  }
 }
 ```
 
 ### Signing and Verifying Messages
 
 ```dart
-import 'package:mochimo_wots/mochimo_wots.dart';
+import 'dart:typed_data';
 import 'dart:convert';
+import 'package:mochimo_wots/mochimo_wots.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
-  final wallet = WOTSWallet.create("Test Wallet", secret, tag);
+  final secret = Uint8List(32)..fillRange(0, 32, 0x56);
+  final tag = Uint8List(12)..fillRange(0, 12, 0x34);
+  
+  final wallet = WOTSWallet(
+    name: "Test Wallet",
+    secret: secret,
+    addrTag: tag
+  );
 
-  // Message to sign
-  final message = utf8.encode("Hello, Mochimo!");
-  final messageBytes = Uint8List.fromList(message);
+  try {
+    // Message to sign
+    final message = "Hello, Mochimo!";
+    final messageBytes = Uint8List.fromList(utf8.encode(message));
 
-  // Sign the message
-  final signature = wallet.sign(messageBytes);
+    // Sign the message
+    final signature = wallet.sign(messageBytes);
+    print('Signature: ${ByteUtils.bytesToHex(signature)}');
 
-  // Verify the signature
-  final isValid = wallet.verify(messageBytes, signature);
-  print('Signature valid: $isValid');
+    // Verify the signature
+    final isValid = wallet.verify(messageBytes, signature);
+    print('Signature valid: $isValid');
 
-  // Verify with modified message (should fail)
-  final modifiedMessage = utf8.encode("Hello, Modified!");
-  final modifiedBytes = Uint8List.fromList(modifiedMessage);
-  final isValidModified = wallet.verify(modifiedBytes, signature);
-  print('Modified message valid: $isValidModified'); // false
+    // Verify with modified message (should fail)
+    final modifiedMessage = "Hello, Modified!";
+    final modifiedBytes = Uint8List.fromList(utf8.encode(modifiedMessage));
+    final isValidModified = wallet.verify(modifiedBytes, signature);
+    print('Modified message valid: $isValidModified'); // false
+  } catch (e) {
+    print('Error during signing/verification: $e');
+  }
 }
 ```
 
