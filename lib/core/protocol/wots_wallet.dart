@@ -1,9 +1,9 @@
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/utils/ByteUtils.dart';
-import 'package:mochimo_wots/core/protocol/Wots.dart';
-import 'package:mochimo_wots/core/hasher/MochimoHasher.dart';
-import 'package:mochimo_wots/core/protocol/WotsAddress.dart';
-import 'package:mochimo_wots/core/utils/TagUtils.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
+import 'package:mochimo_wots/core/protocol/wots.dart';
+import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
+import 'package:mochimo_wots/core/protocol/wots_address.dart';
+import 'package:mochimo_wots/core/utils/tag_utils.dart';
 
 class WOTSWallet {
   String? name;

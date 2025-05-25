@@ -1,6 +1,6 @@
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/model/ByteBuffer.dart';
-import 'package:mochimo_wots/core/utils/ByteUtils.dart' hide ByteArray;
+import 'package:mochimo_wots/core/model/byte_buffer.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart' hide ByteArray;
 import 'package:mochimo_wots/core/utils/crc16.dart';
 import 'package:meta/meta.dart';
 

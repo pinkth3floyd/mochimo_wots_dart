@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'dart:math';
-import 'package:mochimo_wots/core/model/ByteBuffer.dart';
-import 'package:mochimo_wots/core/protocol/WotsAddress.dart';
-import 'package:mochimo_wots/core/protocol/WotsHash.dart';
-import 'package:mochimo_wots/core/protocol/Tags.dart';
+import 'package:mochimo_wots/core/model/byte_buffer.dart';
+import 'package:mochimo_wots/core/protocol/wots_address.dart';
+import 'package:mochimo_wots/core/protocol/wots_hash.dart';
+import 'package:mochimo_wots/core/protocol/tags.dart';
 
 typedef RandomGenerator = void Function(Uint8List bytes);
 

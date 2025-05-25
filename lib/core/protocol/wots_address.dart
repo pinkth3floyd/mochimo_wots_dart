@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
-import 'package:mochimo_wots/core/utils/ByteUtils.dart'; 
+import 'package:mochimo_wots/core/utils/byte_utils.dart'; 
 
 
 typedef ByteArray = Uint8List;

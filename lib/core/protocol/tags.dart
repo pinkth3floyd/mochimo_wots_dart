@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/model/ByteBuffer.dart'; 
+import 'package:mochimo_wots/core/model/byte_buffer.dart'; 
 
 /**
  * Tag implementation for Mochimo addresses
