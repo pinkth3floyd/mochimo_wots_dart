@@ -167,4 +167,8 @@ class ByteUtils {
     }
     return true;
   }
+
+  static String toHexString(int value) {
+    return '0x${value.toRadixString(16).padLeft(2, '0')}';
+  }
 }

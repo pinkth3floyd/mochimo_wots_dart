@@ -12,7 +12,7 @@
 /// * [CRC16] - CRC checksum calculation utilities
 library mochimo_wots;
 
-export 'core/model/byte_buffer.dart';
+export 'core/model/byte_buffer.dart' hide HexString;
 export 'core/protocol/datagram.dart';
 export 'core/protocol/wots_wallet.dart';
 export 'core/utils/byte_utils.dart' hide ByteArray;
