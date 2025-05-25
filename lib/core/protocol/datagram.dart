@@ -71,10 +71,6 @@ class Datagram {
 
   /// Serializes datagram to bytes
   ByteArray serialize() {
-    if (_operation == null) {
-      throw StateError('Operation not set');
-    }
-
     final buffer = ByteBuffer.allocate(DatagramConstants.LENGTH);
     buffer.order(ByteOrder.LITTLE_ENDIAN);
 

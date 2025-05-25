@@ -29,7 +29,7 @@ class ByteUtils {
       cleanHex = cleanHex.substring(2);
     }
     if (cleanHex.length % 2 != 0) {
-      cleanHex = '0' + cleanHex;
+      cleanHex = '${0}$cleanHex';
     }
     final bytes = Uint8List(cleanHex.length ~/ 2);
     for (int i = 0; i < cleanHex.length; i += 2) {

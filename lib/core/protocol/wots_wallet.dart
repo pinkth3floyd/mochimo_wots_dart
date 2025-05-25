@@ -108,16 +108,16 @@ class WOTSWallet {
   }
 
   void clear() {
-    if (_secret != null) {
-      ByteUtils.clear(_secret!);
+    if (_secret case final s?) {
+      ByteUtils.clear(s);
       _secret = null;
     }
-    if (_wots != null) {
-      ByteUtils.clear(_wots!);
+    if (_wots case final w?) {
+      ByteUtils.clear(w);
       _wots = null;
     }
-    if (_addrTag != null) {
-      ByteUtils.clear(_addrTag!);
+    if (_addrTag case final t?) {
+      ByteUtils.clear(t);
       _addrTag = null;
     }
     addrTagHex = null;
