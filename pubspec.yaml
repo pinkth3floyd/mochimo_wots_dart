@@ -1,6 +1,6 @@
 name: mochimo_wots
 description: "A Dart implementation of the Mochimo WOTS (Winternitz One-Time Signature) protocol."
-version: 1.0.0
+version: 1.0.1
 homepage: https://mochimo.org
 repository: https://github.com/pinkth3floyd/mochimo_wots_dart
 
