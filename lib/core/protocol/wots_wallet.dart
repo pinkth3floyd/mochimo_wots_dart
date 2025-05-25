@@ -81,7 +81,6 @@ class WOTSWallet {
     if (_wots!.length != 2208) {
       throw StateError('Invalid sourceWots length, expected 2208, got ${_wots!.length}');
     }
-    final pk = _wots!.sublist(0, WOTS.WOTSSIGBYTES);
     final pubSeed = _wots!.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32);
     final rnd2 = _wots!.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64);
     final sig = Uint8List(WOTS.WOTSSIGBYTES);

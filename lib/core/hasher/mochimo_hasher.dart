@@ -30,9 +30,7 @@ class MochimoHasher {
     }
   }
 
-  /**
-   * Updates the hash with the given data
-   */
+  /// Updates the hash with the given data
   void update(ByteArray buffer, [int offset = 0, int? length]) {
     length ??= buffer.length;
     if (offset < 0 || offset > buffer.length) {
@@ -49,9 +47,7 @@ class MochimoHasher {
     _buffer.addAll(data);
   }
 
-  /**
-   * Returns the final hash value
-   */
+  /// Returns the final hash value
   ByteArray digest() {
     final data = Uint8List.fromList(_buffer);
     _hasher.update(data, 0, data.length);
@@ -62,9 +58,7 @@ class MochimoHasher {
     return digestBytes;
   }
 
-  /**
-   * Performs hash operation
-   */
+  /// Performs hash operation
   static ByteArray hash(ByteArray data, [int? offset, int? length]) {
     final hasher = MochimoHasher();
     if (offset != null && length != null) {
@@ -75,6 +69,7 @@ class MochimoHasher {
     return hasher.digest();
   }
 
+  /// Performs hash operation with specified algorithm
   static ByteArray hashWith(String algorithm, ByteArray data) {
     final hasher = MochimoHasher(algorithm: algorithm);
     hasher.update(data);
