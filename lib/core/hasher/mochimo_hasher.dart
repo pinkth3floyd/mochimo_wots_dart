@@ -6,10 +6,8 @@ import 'package:pointycastle/digests/sha256.dart';
 // Define a type alias for ByteArray, since Dart doesn't have a direct equivalent
 typedef ByteArray = Uint8List;
 
-/**
- * Dart implementation of MochimoHasher
- * Uses the pointycastle package for hash implementations
- */
+/// Dart implementation of MochimoHasher
+/// Uses the pointycastle package for hash implementations
 class MochimoHasher {
   late dynamic _hasher; // pointycastle Digest
   final String _algorithm;

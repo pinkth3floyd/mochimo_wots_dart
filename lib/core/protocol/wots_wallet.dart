@@ -45,35 +45,29 @@ class WOTSWallet {
 
   String? getName() => name;
 
-  Uint8List? getWots() => _wots != null ? Uint8List.fromList(_wots!) : null;
+  Uint8List? getWots() => _wots == null ? null : Uint8List.fromList(_wots!);
 
   String? getWotsHex() => wotsAddrHex;
 
-  Uint8List? getWotsPk() =>
-      _wots != null ? Uint8List.fromList(_wots!.sublist(0, WOTS.WOTSSIGBYTES)) : null;
+  Uint8List? getWotsPk() => _wots?.sublist(0, WOTS.WOTSSIGBYTES);
 
-  Uint8List? getWotsPubSeed() =>
-      _wots != null ? _wots!.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32) : null;
+  Uint8List? getWotsPubSeed() => _wots?.sublist(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32);
 
-  Uint8List? getWotsAdrs() =>
-      _wots != null ? _wots!.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64) : null;
+  Uint8List? getWotsAdrs() => _wots?.sublist(WOTS.WOTSSIGBYTES + 32, WOTS.WOTSSIGBYTES + 64);
 
-  Uint8List? getWotsTag() =>
-      _wots != null ? _wots!.sublist(WOTS.WOTSSIGBYTES + 64 - WotsAddress.ADDR_TAG_LEN, WOTS.WOTSSIGBYTES + 64) : null;
+  Uint8List? getWotsTag() => _wots?.sublist(WOTS.WOTSSIGBYTES + 64 - WotsAddress.ADDR_TAG_LEN, WOTS.WOTSSIGBYTES + 64);
 
-  Uint8List? getAddress() =>
-      mochimoAddr != null ? Uint8List.fromList(mochimoAddr!.bytes().sublist(0, 40)) : null;
+  Uint8List? getAddress() => mochimoAddr?.bytes().sublist(0, 40);
 
-  Uint8List? getAddrTag() => _addrTag != null ? Uint8List.fromList(_addrTag!) : null;
+  Uint8List? getAddrTag() => _addrTag == null ? null : Uint8List.fromList(_addrTag!);
 
   String? getAddrTagHex() => addrTagHex;
 
-  String? getAddrTagBase58() =>
-      _addrTag != null ? TagUtils.addrTagToBase58(getAddrTag()!) : null;
+  String? getAddrTagBase58() => _addrTag == null ? null : TagUtils.addrTagToBase58(_addrTag!);
 
   Uint8List? getAddrHash() => mochimoAddr?.getAddrHash();
 
-  Uint8List? getSecret() => _secret != null ? Uint8List.fromList(_secret!) : null;
+  Uint8List? getSecret() => _secret == null ? null : Uint8List.fromList(_secret!);
 
   bool hasSecret() => _secret != null;
 
@@ -138,12 +132,6 @@ class WOTSWallet {
   static WOTSWallet create(String name, Uint8List secret, [Uint8List? v3tag, void Function(Uint8List)? randomGenerator]) {
     if (secret.length != 32) {
       throw ArgumentError('Invalid secret length');
-    }
-
-    void deterministicRandomGenerator(Uint8List bytes) {
-      for (int i = 0; i < bytes.length; i++) {
-        bytes[i] = 0x42;
-      }
     }
 
     Uint8List privateSeed = secret;
