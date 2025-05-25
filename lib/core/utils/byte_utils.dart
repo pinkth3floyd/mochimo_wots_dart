@@ -11,7 +11,8 @@ class ByteUtils {
   // Private constructor to prevent instantiation
   ByteUtils._();
 
-  static const String HEX_CHARS = '0123456789abcdef';
+  /// Hexadecimal characters for byte-to-hex conversion
+  static const hexChars = '0123456789abcdef';
 
   /// Create a copy of a byte array
   static ByteArray copyOf(ByteArray original, int length) {
@@ -106,11 +107,17 @@ class ByteUtils {
   /// Convert a byte array to its hexadecimal string representation
   static HexString bytesToHex(ByteArray bytes, [int offset = 0, int? length]) {
     length ??= bytes.length - offset;
+    if (offset < 0 || offset > bytes.length) {
+      throw ArgumentError('Invalid offset: $offset');
+    }
+    if (length < 0 || offset + length > bytes.length) {
+      throw ArgumentError('Invalid length: $length');
+    }
     final hexChars = List<String>.filled(length * 2, '');
     for (int j = 0; j < length; j++) {
       final v = bytes[j + offset] & 0xFF;
-      hexChars[j * 2] = HEX_CHARS[v >> 4];
-      hexChars[j * 2 + 1] = HEX_CHARS[v & 0x0F];
+      hexChars[j * 2] = ByteUtils.hexChars[v >> 4];
+      hexChars[j * 2 + 1] = ByteUtils.hexChars[v & 0x0F];
     }
     return hexChars.join();
   }
@@ -131,6 +138,12 @@ class ByteUtils {
   /// Convert a byte array to little-endian format
   static ByteArray toLittleEndian(ByteArray value, [int offset = 0, int? length]) {
     length ??= value.length - offset;
+    if (offset < 0 || offset > value.length) {
+      throw ArgumentError('Invalid offset: $offset');
+    }
+    if (length < 0 || offset + length > value.length) {
+      throw ArgumentError('Invalid length: $length');
+    }
     final copy = Uint8List(length);
     copy.setRange(0, length, value, offset);
     for (int i = 0; i < (copy.length >> 1); i++) {
