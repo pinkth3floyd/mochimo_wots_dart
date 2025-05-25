@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/hasher/MochimoHasher.dart';
+import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 import 'package:mochimo_wots/core/utils/ByteUtils.dart'; 
 
 

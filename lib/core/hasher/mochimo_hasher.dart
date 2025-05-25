@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:pointycastle/digests/sha3.dart';
 import 'package:pointycastle/digests/ripemd160.dart';
 import 'package:pointycastle/digests/sha256.dart';
-import 'package:pointycastle/digests/sha512.dart';
 
 // Define a type alias for ByteArray, since Dart doesn't have a direct equivalent
 typedef ByteArray = Uint8List;

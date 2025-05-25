@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:base58check/base58.dart';
-import 'CRC16.dart';
+import 'crc16.dart';
 
 typedef ByteArray = Uint8List;
 
@@ -9,7 +9,7 @@ class TagUtils {
   TagUtils._();
 
   /// Converts an address tag (12 bytes) to a Base58 string with CRC16 checksum
-  static final Base58Codec _base58 = Base58Codec('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
+  static const _base58 = Base58Codec('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
 
   static String? addrTagToBase58(ByteArray? addrTag) {
     if (addrTag == null) return null;
