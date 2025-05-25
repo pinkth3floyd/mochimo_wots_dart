@@ -128,7 +128,8 @@ class WOTS {
     // Generate chains
     for (int i = 0; i < WOTSLEN; i++) {
       WOTSHash.setChainAddr(bbaddr, i);
-      genChain(pk, i * PARAMSN, pk, i * PARAMSN, 0, WOTSW - 1, pubSeed.sublist(offset), bbaddr.array());
+      genChain(pk, i * PARAMSN, pk, i * PARAMSN, 0, WOTSW - 1,
+          pubSeed.sublist(offset), bbaddr.array());
     }
   }
 
@@ -157,7 +158,8 @@ class WOTS {
     // Generate signature
     for (int i = 0; i < WOTSLEN; i++) {
       WOTSHash.setChainAddr(bbaddr, i);
-      genChain(sig, i * PARAMSN, sig, i * PARAMSN, 0, lengths[i], pubSeed.sublist(offset), bbaddr.array());
+      genChain(sig, i * PARAMSN, sig, i * PARAMSN, 0, lengths[i],
+          pubSeed.sublist(offset), bbaddr.array());
     }
   }
 
@@ -183,7 +185,8 @@ class WOTS {
     // Verify signature
     for (int i = 0; i < WOTSLEN; i++) {
       WOTSHash.setChainAddr(bbaddr, i);
-      genChain(pk, i * PARAMSN, signature, i * PARAMSN, lengths[i], WOTSW - 1 - lengths[i], pubSeed, bbaddr.array());
+      genChain(pk, i * PARAMSN, signature, i * PARAMSN, lengths[i],
+          WOTSW - 1 - lengths[i], pubSeed, bbaddr.array());
     }
 
     return pk;
@@ -206,15 +209,18 @@ class WOTS {
     final sourcePK = Uint8List(WOTSSIGBYTES);
     final components = componentsGenerator(secret);
 
-    wotsPkgen(sourcePK, components['private_seed']!, components['public_seed']!, 0, components['addr_seed']!);
+    wotsPkgen(sourcePK, components['private_seed']!, components['public_seed']!,
+        0, components['addr_seed']!);
 
     final sourceAddress = Uint8List(2208);
     sourceAddress.setRange(0, WOTSSIGBYTES, sourcePK);
-    sourceAddress.setRange(WOTSSIGBYTES, WOTSSIGBYTES + 32, components['public_seed']!);
+    sourceAddress.setRange(
+        WOTSSIGBYTES, WOTSSIGBYTES + 32, components['public_seed']!);
     sourceAddress.setRange(WOTSSIGBYTES + 32, 2208, components['addr_seed']!);
 
     // Apply tag if provided using Tag.tag
-    final readyAddress = tag != null ? Tag.tag(sourceAddress, tag) : sourceAddress;
+    final readyAddress =
+        tag != null ? Tag.tag(sourceAddress, tag) : sourceAddress;
 
     // Validate address
     for (int i = 0; i < 10; i++) {
@@ -298,11 +304,8 @@ class WOTS {
   }
 
   /// Validates a WOTS address using a Random generator
-  static bool isValid(
-    Uint8List secret,
-    Uint8List address,
-    [RandomGenerator random = randomBytes]
-  ) {
+  static bool isValid(Uint8List secret, Uint8List address,
+      [RandomGenerator random = randomBytes]) {
     final pk = Uint8List(WOTSSIGBYTES);
     final pubSeed = Uint8List(PARAMSN);
     final rnd2 = Uint8List(PARAMSN);
@@ -335,7 +338,8 @@ class WOTS {
     rnd2.setRange(0, PARAMSN, address, 2176);
 
     // Generate public key
-    wotsPkgen(address, secret, address.sublist(WOTSSIGBYTES, WOTSSIGBYTES + PARAMSN), 0, rnd2);
+    wotsPkgen(address, secret,
+        address.sublist(WOTSSIGBYTES, WOTSSIGBYTES + PARAMSN), 0, rnd2);
 
     // Copy rnd2 back to address
     address.setRange(2176, 2208, rnd2);

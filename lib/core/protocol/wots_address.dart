@@ -1,21 +1,19 @@
 import 'dart:typed_data';
 import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
-import 'package:mochimo_wots/core/utils/byte_utils.dart'; 
-
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 typedef ByteArray = Uint8List;
-
 
 /**
  * WotsAddress implementation for Mochimo addresses
  */
 class WotsAddress {
   // Constants
-  static const int TXADDRLEN = 40; 
-  static const int ADDR_TAG_LEN = 12; 
+  static const int TXADDRLEN = 40;
+  static const int ADDR_TAG_LEN = 12;
   static const int WOTS_PK_LEN = 2144;
   static const int TXAMOUNT = 8;
-  static const int SHA3LEN512 = 64; 
+  static const int SHA3LEN512 = 64;
 
   late Uint8List _address;
   late BigInt _amount;
@@ -64,7 +62,8 @@ class WotsAddress {
   /// into the address hash section.
   /// @param addrHash The byte array containing the new address hash.
   void setAddrHash(ByteArray addrHash) {
-    _address.setAll(ADDR_TAG_LEN, addrHash.sublist(0, TXADDRLEN - ADDR_TAG_LEN));
+    _address.setAll(
+        ADDR_TAG_LEN, addrHash.sublist(0, TXADDRLEN - ADDR_TAG_LEN));
   }
 
   /// Sets the amount from a byte array.
@@ -73,9 +72,11 @@ class WotsAddress {
   void setAmountBytes(ByteArray amountBytes) {
     // Ensure the amountBytes array is large enough to read a 64-bit integer
     if (amountBytes.length < TXAMOUNT) {
-      throw ArgumentError('Amount bytes array too short. Expected $TXAMOUNT bytes.');
+      throw ArgumentError(
+          'Amount bytes array too short. Expected $TXAMOUNT bytes.');
     }
-    final byteData = ByteData.view(amountBytes.buffer, amountBytes.offsetInBytes, TXAMOUNT);
+    final byteData =
+        ByteData.view(amountBytes.buffer, amountBytes.offsetInBytes, TXAMOUNT);
     _amount = BigInt.from(byteData.getUint64(0, Endian.little));
   }
 

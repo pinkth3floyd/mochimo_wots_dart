@@ -16,7 +16,7 @@ void main() {
     );
     final base58Tag = TagUtils.addrTagToBase58(tagBytes);
     print('Actual Base58 encoding for $tagHex: $base58Tag');
-    
+
     // Also test the zero case
     final zeroTagBytes = Uint8List(12);
     final zeroBase58Tag = TagUtils.addrTagToBase58(zeroTagBytes);
@@ -30,7 +30,8 @@ void main() {
     },
     {
       'tag': '000000000000000000000000', // 12 bytes = 24 hex chars
-      'expectedBase58': '11111111111111', // 14 ones for 12 zero bytes + 2 checksum bytes
+      'expectedBase58':
+          '11111111111111', // 14 ones for 12 zero bytes + 2 checksum bytes
     },
   ];
 

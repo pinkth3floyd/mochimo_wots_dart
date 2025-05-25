@@ -11,12 +11,12 @@ void main() {
 
   // Demonstrate byte order settings
   print('\nDemonstrating byte order settings:');
-  
+
   // Write an integer in big-endian
   buffer.order(ByteOrder.bigEndian);
   buffer.putInt(0x12345678);
   print('Wrote integer in big-endian: 0x12345678');
-  
+
   // Write an integer in little-endian
   buffer.order(ByteOrder.littleEndian);
   buffer.putInt(0x9ABCDEF0);
@@ -30,20 +30,22 @@ void main() {
   // Demonstrate position management
   print('\nBuffer position management:');
   print('Current position: ${buffer.position()}');
-  
+
   // Rewind and read back the data
   buffer.rewind();
   print('\nReading back data:');
 
   // Read first integer (big-endian)
-  buffer.order(ByteOrder.BIG_ENDIAN);
-  final readInt1 = _readIntFromBuffer(buffer, ByteOrder.BIG_ENDIAN);
-  print('Read big-endian integer: 0x${readInt1.toRadixString(16).padLeft(8, '0')}');
+  buffer.order(ByteOrder.bigEndian);
+  final readInt1 = _readIntFromBuffer(buffer, ByteOrder.bigEndian);
+  print(
+      'Read big-endian integer: 0x${readInt1.toRadixString(16).padLeft(8, '0')}');
 
   // Read second integer (little-endian)
-  buffer.order(ByteOrder.LITTLE_ENDIAN);
-  final readInt2 = _readIntFromBuffer(buffer, ByteOrder.LITTLE_ENDIAN);
-  print('Read little-endian integer: 0x${readInt2.toRadixString(16).padLeft(8, '0')}');
+  buffer.order(ByteOrder.littleEndian);
+  final readInt2 = _readIntFromBuffer(buffer, ByteOrder.littleEndian);
+  print(
+      'Read little-endian integer: 0x${readInt2.toRadixString(16).padLeft(8, '0')}');
 
   // Read bytes
   final readBytes = Uint8List(4);
@@ -52,7 +54,7 @@ void main() {
 
   // Demonstrate ByteUtils functionality
   print('\nDemonstrating ByteUtils functionality:');
-  
+
   // Convert bytes to hex
   final hexString = ByteUtils.bytesToHex(bytes);
   print('Bytes to hex: $hexString');
@@ -77,10 +79,10 @@ int _readIntFromBuffer(ByteBuffer buffer, ByteOrder order) {
   final b2 = buffer.get_();
   final b3 = buffer.get_();
   final b4 = buffer.get_();
-  
-  if (order == ByteOrder.BIG_ENDIAN) {
+
+  if (order == ByteOrder.bigEndian) {
     return (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
   } else {
     return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
   }
-} 
+}

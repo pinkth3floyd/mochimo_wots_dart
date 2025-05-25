@@ -18,7 +18,7 @@ Inspired by TypeScript implementation of wots by Anuj [Repo](https://github.com/
 
 ```yaml
 dependencies:
-  mochimo_wots: ^1.0.2
+  mochimo_wots: ^1.0.3
 ```
 
 Then run:

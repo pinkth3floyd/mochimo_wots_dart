@@ -4,21 +4,23 @@ import 'crc16.dart';
 
 typedef ByteArray = Uint8List;
 
-
 class TagUtils {
   TagUtils._();
 
   /// Converts an address tag (12 bytes) to a Base58 string with CRC16 checksum
-  static const _base58 = Base58Codec('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
+  static const _base58 =
+      Base58Codec('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
 
   static String? addrTagToBase58(ByteArray? addrTag) {
     if (addrTag == null) return null;
     if (addrTag.length != 12) {
-      throw ArgumentError('Invalid address tag length: ${addrTag.length}. Expected 12.');
+      throw ArgumentError(
+          'Invalid address tag length: ${addrTag.length}. Expected 12.');
     }
 
-    final csum = CRC16.crc(addrTag, 0, 12); 
-    final combined = Uint8List(14); // Changed from 22 to 14 (12 bytes tag + 2 bytes checksum)
+    final csum = CRC16.crc(addrTag, 0, 12);
+    final combined = Uint8List(
+        14); // Changed from 22 to 14 (12 bytes tag + 2 bytes checksum)
     combined.setRange(0, 12, addrTag);
 
     // Convert csum to little-endian bytes
@@ -52,11 +54,11 @@ class TagUtils {
       throw ArgumentError('Input tag cannot be empty.');
     }
     final decoded = _base58.decode(tag);
-    if (decoded.length != 14) { // 12 bytes tag + 2 bytes checksum
-      throw ArgumentError('Invalid base58 tag length: ${decoded.length}. Expected 14.');
+    if (decoded.length != 14) {
+      // 12 bytes tag + 2 bytes checksum
+      throw ArgumentError(
+          'Invalid base58 tag length: ${decoded.length}. Expected 14.');
     }
     return Uint8List.fromList(decoded.sublist(0, 12));
   }
 }
-
-

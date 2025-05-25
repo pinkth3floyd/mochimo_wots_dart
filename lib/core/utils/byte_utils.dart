@@ -1,11 +1,8 @@
 import 'dart:typed_data';
 import 'package:mochimo_wots/core/model/byte_buffer.dart';
 
-
-
 typedef ByteArray = Uint8List;
 typedef HexString = String;
-
 
 class ByteUtils {
   // Private constructor to prevent instantiation
@@ -136,7 +133,8 @@ class ByteUtils {
   }
 
   /// Convert a byte array to little-endian format
-  static ByteArray toLittleEndian(ByteArray value, [int offset = 0, int? length]) {
+  static ByteArray toLittleEndian(ByteArray value,
+      [int offset = 0, int? length]) {
     length ??= value.length - offset;
     if (offset < 0 || offset > value.length) {
       throw ArgumentError('Invalid offset: $offset');

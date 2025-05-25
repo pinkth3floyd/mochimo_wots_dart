@@ -13,7 +13,8 @@ class MochimoHasher {
   final String _algorithm;
   final List<int> _buffer = []; // Buffer to accumulate data
 
-  MochimoHasher({String algorithm = 'sha256'}) : _algorithm = algorithm.toLowerCase() {
+  MochimoHasher({String algorithm = 'sha256'})
+      : _algorithm = algorithm.toLowerCase() {
     _hasher = _createHasher(_algorithm);
   }
 

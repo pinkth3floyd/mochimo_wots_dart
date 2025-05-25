@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/protocol/tags.dart'; 
-import 'package:mochimo_wots/core/utils/byte_utils.dart'; 
+import 'package:mochimo_wots/core/protocol/tags.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   group('Tag', () {
@@ -9,7 +9,8 @@ void main() {
       test('should validate tag length', () {
         final shortTag = Uint8List(11);
         final longTag = Uint8List(13);
-        final validTag = Uint8List(12)..fillRange(0, 12, 0x41); // Fill with 0x41
+        final validTag = Uint8List(12)
+          ..fillRange(0, 12, 0x41); // Fill with 0x41
 
         expect(Tag.isValid(shortTag), isFalse);
         expect(Tag.isValid(longTag), isFalse);
@@ -33,7 +34,8 @@ void main() {
     group('extraction', () {
       test('should extract tag from address', () {
         final address = Uint8List(2208);
-        final expectedTag = Uint8List(12)..fillRange(0, 12, 0x41); // Fill with 0x41
+        final expectedTag = Uint8List(12)
+          ..fillRange(0, 12, 0x41); // Fill with 0x41
         address.setAll(address.length - Tag.TAG_LENGTH, expectedTag);
 
         final extractedTag = Tag.getTag(address);
@@ -59,7 +61,7 @@ void main() {
           expectedTag[i] = i;
         }
         address.setAll(2208 - 12, expectedTag);
-        
+
         final extractedTag = Tag.getTag(address);
         expect(extractedTag.length, equals(12));
         for (int i = 0; i < 12; i++) {
@@ -74,7 +76,7 @@ void main() {
           expectedTag[i] = 255 - i; // Use distinct values
         }
         address.setAll(2208 - Tag.TAG_LENGTH, expectedTag);
-        
+
         final extractedTag = Tag.getTag(address);
         expect(extractedTag.length, equals(12));
         for (int i = 0; i < 12; i++) {

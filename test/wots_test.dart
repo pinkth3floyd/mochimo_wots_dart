@@ -46,15 +46,21 @@ void main() {
 
       test('should throw on invalid secret length', () {
         final secret = Uint8List(31);
-        expect(() => WOTS.generateRandomAddress(null, secret),
-            throwsA(predicate((e) => e is ArgumentError && e.message.contains('Invalid secret length'))));
+        expect(
+            () => WOTS.generateRandomAddress(null, secret),
+            throwsA(predicate((e) =>
+                e is ArgumentError &&
+                e.message.contains('Invalid secret length'))));
       });
 
       test('should throw on invalid tag length', () {
         final secret = Uint8List(32);
         final tag = Uint8List(11);
-        expect(() => WOTS.generateRandomAddress(tag, secret),
-            throwsA(predicate((e) => e is ArgumentError && e.message.contains('Invalid tag length'))));
+        expect(
+            () => WOTS.generateRandomAddress(tag, secret),
+            throwsA(predicate((e) =>
+                e is ArgumentError &&
+                e.message.contains('Invalid tag length'))));
       });
     });
 
@@ -84,7 +90,8 @@ void main() {
         final pubSeed = Uint8List(32);
         final rnd2 = Uint8List(32);
 
-        expect(() => WOTS.splitAddress(address, pk, pubSeed, rnd2, null), returnsNormally);
+        expect(() => WOTS.splitAddress(address, pk, pubSeed, rnd2, null),
+            returnsNormally);
       });
 
       test('should throw on invalid component lengths', () {
@@ -93,8 +100,11 @@ void main() {
         final pubSeed = Uint8List(32);
         final rnd2 = Uint8List(32);
 
-        expect(() => WOTS.splitAddress(address, pk, pubSeed, rnd2, null),
-            throwsA(predicate((e) => e is ArgumentError && e.message.contains('Invalid pk length'))));
+        expect(
+            () => WOTS.splitAddress(address, pk, pubSeed, rnd2, null),
+            throwsA(predicate((e) =>
+                e is ArgumentError &&
+                e.message.contains('Invalid pk length'))));
       });
     });
 

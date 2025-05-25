@@ -63,7 +63,8 @@ void main() {
         hasher.update(data2);
 
         final combinedData = [...data1, ...data2];
-        expect(hasher.digest(), equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
+        expect(hasher.digest(),
+            equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
       });
 
       test('should handle mixed-size updates', () {
@@ -77,7 +78,8 @@ void main() {
         hasher.update(data3);
 
         final combinedData = [...data1, ...data2, ...data3];
-        expect(hasher.digest(), equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
+        expect(hasher.digest(),
+            equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
       });
 
       test('should handle zero-length updates', () {
@@ -91,7 +93,8 @@ void main() {
         hasher.update(data3);
 
         final combinedData = [...data1, ...data2, ...data3];
-        expect(hasher.digest(), equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
+        expect(hasher.digest(),
+            equals(getPointyCastleHash(Uint8List.fromList(combinedData))));
       });
     });
 
@@ -108,7 +111,6 @@ void main() {
 
     group('edge cases', () {
       test('should handle data with undefined bytes in word boundary', () {
-      
         final data = Uint8List(5); // 5 bytes
         data[0] = 0x12;
         data[1] = 0x34;

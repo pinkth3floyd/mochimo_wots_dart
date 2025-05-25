@@ -1,11 +1,11 @@
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/model/byte_buffer.dart'; 
+import 'package:mochimo_wots/core/model/byte_buffer.dart';
 
 /**
  * Tag implementation for Mochimo addresses
  */
 class Tag {
-  static const int TAG_LENGTH = 12; 
+  static const int TAG_LENGTH = 12;
 
   // Private constructor to prevent instantiation of a utility class
   Tag._();
@@ -20,7 +20,8 @@ class Tag {
    */
   static ByteArray getTag(ByteArray address) {
     if (address.length != 2208) {
-      throw ArgumentError('Invalid address length: ${address.length}. Expected 2208.');
+      throw ArgumentError(
+          'Invalid address length: ${address.length}. Expected 2208.');
     }
     // Return a copy of the tag, which is the last TAG_LENGTH bytes
     return address.sublist(address.length - TAG_LENGTH);
@@ -67,15 +68,18 @@ class Tag {
   static ByteArray tag(ByteArray address, ByteArray tag) {
     // Validate the tag first
     if (!isValid(tag)) {
-      throw ArgumentError('Invalid tag provided. Tag must be non-null and have length ${TAG_LENGTH}.');
+      throw ArgumentError(
+          'Invalid tag provided. Tag must be non-null and have length ${TAG_LENGTH}.');
     }
     // Validate the address length
     if (address.length != 2208) {
-      throw ArgumentError('Invalid address length: ${address.length}. Expected 2208.');
+      throw ArgumentError(
+          'Invalid address length: ${address.length}. Expected 2208.');
     }
     // Validate tag length (redundant if isValid is called, but good for clarity)
     if (tag.length != TAG_LENGTH) {
-      throw ArgumentError('Invalid tag length: ${tag.length}. Expected ${TAG_LENGTH}.');
+      throw ArgumentError(
+          'Invalid tag length: ${tag.length}. Expected ${TAG_LENGTH}.');
     }
 
     // Create a new Uint8List as a copy of the original address

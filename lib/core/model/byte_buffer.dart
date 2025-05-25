@@ -1,10 +1,7 @@
 import 'dart:typed_data';
 
 /// ByteOrder enum to match Java's ByteOrder
-enum ByteOrder {
-  bigEndian,
-  littleEndian
-}
+enum ByteOrder { bigEndian, littleEndian }
 
 /// Dart implementation of Java's ByteBuffer
 class ByteBuffer {
@@ -40,7 +37,8 @@ class ByteBuffer {
       return _pos;
     }
     if (newPosition < 0 || newPosition > _buf.length) {
-      throw RangeError('Invalid position, position: $newPosition, length: ${_buf.length}');
+      throw RangeError(
+          'Invalid position, position: $newPosition, length: ${_buf.length}');
     }
     _pos = newPosition;
     return this;

@@ -56,7 +56,7 @@ void main() {
 
   // Generate deterministic address using custom components generator
   final address = WOTS.generateAddress(tag, secret, myComponentsGenerator);
-  
+
   print('\nGenerated address components:');
   print('Address (first 32 bytes): ${_bytesToHex(address.sublist(0, 32))}...');
 
@@ -75,4 +75,4 @@ void main() {
 // Helper function to convert bytes to hex string
 String _bytesToHex(Uint8List bytes) {
   return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
-} 
+}

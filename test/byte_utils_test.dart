@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/utils/byte_utils.dart'; 
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   group('ByteUtils', () {
@@ -167,4 +167,3 @@ void main() {
     // });
   });
 }
-

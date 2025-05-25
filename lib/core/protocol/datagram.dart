@@ -341,7 +341,8 @@ class Datagram {
   /// Creates datagram from bytes
   static Datagram of(ByteArray data) {
     if (data.length < DatagramConstants.LENGTH) {
-      throw ArgumentError('Data length cannot be less than datagram length (${DatagramConstants.LENGTH})');
+      throw ArgumentError(
+          'Data length cannot be less than datagram length (${DatagramConstants.LENGTH})');
     }
 
     final buffer = ByteBuffer.allocate(DatagramConstants.LENGTH);
@@ -367,7 +368,8 @@ class Datagram {
     if (opCode == 0) {
       throw StateError('Invalid operation code 0');
     }
-    datagram._operation = Operation.values.firstWhere((op) => op.value == opCode);
+    datagram._operation =
+        Operation.values.firstWhere((op) => op.value == opCode);
 
     // Read block info using 8-byte values
     datagram._cblock = ByteUtils.readLittleEndianUnsigned(buffer, 8);
@@ -379,7 +381,8 @@ class Datagram {
     buffer.get(datagram._weight);
 
     // Read transaction buffer length
-    datagram._transactionBufferLength = ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
+    datagram._transactionBufferLength =
+        ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
 
     // Read addresses
     buffer.get(datagram._sourceAddress);

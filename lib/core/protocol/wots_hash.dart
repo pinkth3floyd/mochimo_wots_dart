@@ -1,6 +1,6 @@
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/model/byte_buffer.dart'; 
-import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart'; 
+import 'package:mochimo_wots/core/model/byte_buffer.dart';
+import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 
 // Type alias for ByteArray for consistency
 typedef ByteArray = Uint8List;
@@ -64,15 +64,18 @@ class WOTSHash {
    */
   static ByteArray addrToBytes(ByteBuffer addr) {
     addr.position(0); // Reset position to the beginning of the buffer
-    final littleEndians = Uint8List(addr.capacity()); // Create a new Uint8List of the same capacity
+    final littleEndians = Uint8List(
+        addr.capacity()); // Create a new Uint8List of the same capacity
 
     // Loop through the buffer, reading 4 bytes at a time and reordering them
     // from big-endian (as read by get_()) to little-endian in the output array.
     for (int i = 0; i < littleEndians.length; i += 4) {
-      final int b0 = addr.get_(); // Read byte 0 (most significant if big-endian)
+      final int b0 =
+          addr.get_(); // Read byte 0 (most significant if big-endian)
       final int b1 = addr.get_(); // Read byte 1
       final int b2 = addr.get_(); // Read byte 2
-      final int b3 = addr.get_(); // Read byte 3 (least significant if big-endian)
+      final int b3 =
+          addr.get_(); // Read byte 3 (least significant if big-endian)
 
       // Place them in little-endian order in the output array
       littleEndians[i] = b3;
@@ -94,7 +97,8 @@ class WOTSHash {
    * @param key The key ByteArray for the PRF.
    * @returns The modified output ByteArray.
    */
-  static ByteArray prf(ByteArray out, int offset, ByteArray input, ByteArray key) {
+  static ByteArray prf(
+      ByteArray out, int offset, ByteArray input, ByteArray key) {
     // Create a buffer of 96 bytes for hashing (32 bytes padding + 32 bytes key + 32 bytes input)
     final buff = Uint8List(96);
 
@@ -113,7 +117,8 @@ class WOTSHash {
     final hasher = MochimoHasher(); // Create a new hasher instance
     hasher.update(buff); // Update hasher with the combined buffer
     final hash = hasher.digest(); // Get the hash digest
-    out.setAll(offset, hash); // Copy the hash to the specified offset in the output array
+    out.setAll(offset,
+        hash); // Copy the hash to the specified offset in the output array
 
     return out;
   }
@@ -148,14 +153,18 @@ class WOTSHash {
 
     // Get key: calculate PRF(pubSeed, addr_as_bytes) and store it at buf[32...63]
     setKeyAndMask(addr, 0); // Set keyAndMask to 0 for key derivation
-    final addrAsBytesForPrf = addrToBytes(addr); // Convert address buffer to bytes
-    prf(buf, 32, addrAsBytesForPrf, pubSeed); // Calculate PRF and write to buf starting at offset 32
+    final addrAsBytesForPrf =
+        addrToBytes(addr); // Convert address buffer to bytes
+    prf(buf, 32, addrAsBytesForPrf,
+        pubSeed); // Calculate PRF and write to buf starting at offset 32
 
     // Get mask: calculate PRF(pubSeed, addr_as_bytes_with_mask_set)
     setKeyAndMask(addr, 1); // Set keyAndMask to 1 for mask derivation
-    final addrAsBytesForMask = addrToBytes(addr); // Convert address buffer to bytes
+    final addrAsBytesForMask =
+        addrToBytes(addr); // Convert address buffer to bytes
     final bitmask = Uint8List(32); // Create a temporary buffer for the bitmask
-    prf(bitmask, 0, addrAsBytesForMask, pubSeed); // Calculate PRF for the bitmask
+    prf(bitmask, 0, addrAsBytesForMask,
+        pubSeed); // Calculate PRF for the bitmask
 
     // XOR input with bitmask and store in buf starting at byte 64
     for (int i = 0; i < 32; i++) {
@@ -166,6 +175,7 @@ class WOTSHash {
     final hasher = MochimoHasher(); // Create a new hasher instance
     hasher.update(buf); // Update hasher with the combined buffer
     final hash = hasher.digest(); // Get the hash digest
-    out.setAll(outOffset, hash); // Copy the hash to the specified offset in the output array
+    out.setAll(outOffset,
+        hash); // Copy the hash to the specified offset in the output array
   }
 }
