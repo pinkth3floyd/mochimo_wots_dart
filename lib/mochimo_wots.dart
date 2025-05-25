@@ -15,6 +15,6 @@ library mochimo_wots;
 export 'core/model/ByteBuffer.dart';
 export 'core/protocol/Datagram.dart';
 export 'core/protocol/WotsWallet.dart';
-export 'core/utils/ByteUtils.dart';
+// export 'core/utils/ByteUtils.dart';
 export 'core/utils/CRC16.dart';
 
