@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/protocol/WotsAddress.dart'; 
-import 'package:mochimo_wots/core/utils/ByteUtils.dart';
-import 'package:mochimo_wots/core/hasher/MochimoHasher.dart';
+import 'package:mochimo_wots/core/protocol/wots_address.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
+import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 
 void main() {
   group('WotsAddress', () {

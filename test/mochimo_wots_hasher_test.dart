@@ -1,5 +1,5 @@
-import 'package:flutter_test/flutter_test.dart';
-import 'package:mochimo_wots/core/hasher/MochimoHasher.dart';
+import 'package:test/test.dart';
+import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 import 'dart:typed_data';
 import 'package:pointycastle/digests/sha256.dart';
 

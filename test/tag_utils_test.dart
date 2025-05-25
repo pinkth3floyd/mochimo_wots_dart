@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:mochimo_wots/core/utils/TagUtils.dart';
+import 'package:mochimo_wots/core/utils/tag_utils.dart';
 
 void main() {
   test('DEBUG - Print actual Base58 encoding', () {

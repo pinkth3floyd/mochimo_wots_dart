@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:mochimo_wots/core/protocol/WotsWallet.dart';
-import 'package:mochimo_wots/core/utils/ByteUtils.dart';
-import 'package:mochimo_wots/core/protocol/Wots.dart';
-import 'package:mochimo_wots/core/utils/TagUtils.dart';
-import 'package:mochimo_wots/core/utils/CRC16.dart';
-import 'package:mochimo_wots/core/protocol/WotsAddress.dart';
+import 'package:mochimo_wots/core/protocol/wots_wallet.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
+import 'package:mochimo_wots/core/protocol/wots.dart';
+import 'package:mochimo_wots/core/utils/tag_utils.dart';
+import 'package:mochimo_wots/core/utils/crc16.dart';
+import 'package:mochimo_wots/core/protocol/wots_address.dart';
 
 void main() {
   late Uint8List testSecret;

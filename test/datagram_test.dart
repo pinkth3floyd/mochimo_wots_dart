@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:mochimo_wots/core/model/ByteBuffer.dart';
-import 'package:mochimo_wots/core/protocol/Datagram.dart';
-import 'package:mochimo_wots/core/utils/ByteUtils.dart';
+import 'package:mochimo_wots/core/model/byte_buffer.dart';
+import 'package:mochimo_wots/core/protocol/datagram.dart';
+import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   group('Datagram', () {

@@ -1,7 +1,7 @@
 import 'package:test/test.dart';
 import 'dart:typed_data';
-import 'package:mochimo_wots/core/model/ByteBuffer.dart'; 
-import 'package:mochimo_wots/core/protocol/WotsHash.dart'; 
+import 'package:mochimo_wots/core/model/byte_buffer.dart';
+import 'package:mochimo_wots/core/protocol/wots_hash.dart';
 
 void main() {
   group('WOTSHash', () {
