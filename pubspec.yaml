@@ -1,9 +1,8 @@
 name: mochimo_wots
 description: "A Dart implementation of the Mochimo WOTS (Winternitz One-Time Signature) protocol. This package provides cryptographic functionality for the Mochimo cryptocurrency network, including wallet management, transaction signing, and network protocol implementations."
 version: 0.1.0
-publish_to: https://pub.dev
 homepage: https://mochimo.org
-repository: https://github.com/mochimodev/mochimo-wots-dart
+repository: https://github.com/pinkth3floyd/mochimo_wots_dart
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
