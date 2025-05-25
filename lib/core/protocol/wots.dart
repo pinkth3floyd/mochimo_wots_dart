@@ -35,7 +35,7 @@ class WOTS {
     // Create WotsAddress instance from addr bytes
     final wotsAddr = WotsAddress.wotsAddressFromBytes(addr);
     final bbaddr = ByteBuffer.wrap(wotsAddr.bytes().sublist(0, PARAMSN));
-    bbaddr.order(ByteOrder.LITTLE_ENDIAN);
+    bbaddr.order(ByteOrder.littleEndian);
 
     // Generate chain
     for (int i = start; i < start + steps && i < WOTSW; i++) {
@@ -123,7 +123,7 @@ class WOTS {
     // Create WotsAddress instance from addr bytes
     final wotsAddr = WotsAddress.wotsAddressFromBytes(addr);
     final bbaddr = ByteBuffer.wrap(wotsAddr.bytes().sublist(0, PARAMSN));
-    bbaddr.order(ByteOrder.LITTLE_ENDIAN);
+    bbaddr.order(ByteOrder.littleEndian);
 
     // Generate chains
     for (int i = 0; i < WOTSLEN; i++) {
@@ -152,7 +152,7 @@ class WOTS {
     // Create WotsAddress instance from addr bytes
     final wotsAddr = WotsAddress.wotsAddressFromBytes(addr);
     final bbaddr = ByteBuffer.wrap(wotsAddr.bytes().sublist(0, PARAMSN));
-    bbaddr.order(ByteOrder.LITTLE_ENDIAN);
+    bbaddr.order(ByteOrder.littleEndian);
 
     // Generate signature
     for (int i = 0; i < WOTSLEN; i++) {
@@ -175,7 +175,7 @@ class WOTS {
     final caddr = Uint8List.fromList(addr);
     final wotsAddr = WotsAddress.wotsAddressFromBytes(caddr);
     final bbaddr = ByteBuffer.wrap(wotsAddr.bytes().sublist(0, PARAMSN));
-    bbaddr.order(ByteOrder.LITTLE_ENDIAN);
+    bbaddr.order(ByteOrder.littleEndian);
 
     // Compute lengths
     chainLengths(msg, lengths);

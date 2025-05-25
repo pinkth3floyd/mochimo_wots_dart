@@ -49,7 +49,7 @@ void main() {
 
     group('byte order operations', () {
       test('should set byte order', () {
-        final result = buffer.order(ByteOrder.LITTLE_ENDIAN);
+        final result = buffer.order(ByteOrder.littleEndian);
         expect(result, buffer);
       });
     });
@@ -84,14 +84,14 @@ void main() {
 
     group('putInt operations', () {
       test('should put integer in big-endian order', () {
-        buffer.order(ByteOrder.BIG_ENDIAN).putInt(0x12345678);
+        buffer.order(ByteOrder.bigEndian).putInt(0x12345678);
         expect(buffer.array().sublist(0, 4),
             Uint8List.fromList([0x12, 0x34, 0x56, 0x78]));
         expect(buffer.position(), 4);
       });
 
       test('should put integer in little-endian order', () {
-        buffer.order(ByteOrder.LITTLE_ENDIAN).putInt(0x12345678);
+        buffer.order(ByteOrder.littleEndian).putInt(0x12345678);
         expect(buffer.array().sublist(0, 4),
             Uint8List.fromList([0x78, 0x56, 0x34, 0x12]));
         expect(buffer.position(), 4);

@@ -13,12 +13,12 @@ void main() {
   print('\nDemonstrating byte order settings:');
   
   // Write an integer in big-endian
-  buffer.order(ByteOrder.BIG_ENDIAN);
+  buffer.order(ByteOrder.bigEndian);
   buffer.putInt(0x12345678);
   print('Wrote integer in big-endian: 0x12345678');
   
   // Write an integer in little-endian
-  buffer.order(ByteOrder.LITTLE_ENDIAN);
+  buffer.order(ByteOrder.littleEndian);
   buffer.putInt(0x9ABCDEF0);
   print('Wrote integer in little-endian: 0x9ABCDEF0');
 

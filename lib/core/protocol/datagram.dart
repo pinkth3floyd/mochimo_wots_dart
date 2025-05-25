@@ -72,7 +72,7 @@ class Datagram {
   /// Serializes datagram to bytes
   ByteArray serialize() {
     final buffer = ByteBuffer.allocate(DatagramConstants.LENGTH);
-    buffer.order(ByteOrder.LITTLE_ENDIAN);
+    buffer.order(ByteOrder.littleEndian);
 
     // Write version
     buffer.put(_version);
@@ -345,7 +345,7 @@ class Datagram {
     }
 
     final buffer = ByteBuffer.allocate(DatagramConstants.LENGTH);
-    buffer.order(ByteOrder.LITTLE_ENDIAN);
+    buffer.order(ByteOrder.littleEndian);
     buffer.put(data);
     buffer.rewind();
 
