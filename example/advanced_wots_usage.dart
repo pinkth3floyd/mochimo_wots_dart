@@ -1,7 +1,7 @@
 import 'dart:typed_data';
+import 'package:mochimo_wots/core/protocol/wots.dart' show WOTS;
 import 'package:mochimo_wots/mochimo_wots.dart';
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
 
 // Custom components generator for deterministic addresses
 Map<String, Uint8List> myComponentsGenerator(Uint8List seed) {

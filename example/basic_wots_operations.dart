@@ -1,4 +1,6 @@
 import 'dart:typed_data';
+import 'package:mochimo_wots/core/protocol/tags.dart';
+import 'package:mochimo_wots/core/protocol/wots.dart';
 import 'package:mochimo_wots/mochimo_wots.dart';
 
 void main() {
