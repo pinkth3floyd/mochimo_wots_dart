@@ -50,29 +50,23 @@ void main() {
   });
 
   group('addrToBytes', () {
-    test('should convert address to little-endian bytes', () {
+    test('should copy big-endian words, matching ull_to_bytes', () {
       final addr = ByteBuffer.allocate(32);
-      // putInt in ByteBuffer writes in Big-Endian by default.
-      // So, 0x12345678 will be stored as [0x12, 0x34, 0x56, 0x78] in the buffer.
       addr.putInt(0x12345678);
-      addr.position(4); // Move position to write another int
+      addr.position(4);
       addr.putInt(0x9ABCDEF0);
-      addr.position(0); // Reset position for addrToBytes
+      addr.position(0);
 
       final bytes = WOTSHash.addrToBytes(addr);
 
-      // addrToBytes should convert the big-endian representation in ByteBuffer
-      // to little-endian in the output ByteArray.
-      // So, 0x12345678 (BE) becomes 0x78563412 (LE)
-      // and 0x9ABCDEF0 (BE) becomes 0xF0DEBC9A (LE)
-      expect(bytes[0], equals(0x78));
-      expect(bytes[1], equals(0x56));
-      expect(bytes[2], equals(0x34));
-      expect(bytes[3], equals(0x12));
-      expect(bytes[4], equals(0xF0));
-      expect(bytes[5], equals(0xDE));
-      expect(bytes[6], equals(0xBC));
-      expect(bytes[7], equals(0x9A));
+      expect(bytes[0], equals(0x12));
+      expect(bytes[1], equals(0x34));
+      expect(bytes[2], equals(0x56));
+      expect(bytes[3], equals(0x78));
+      expect(bytes[4], equals(0x9A));
+      expect(bytes[5], equals(0xBC));
+      expect(bytes[6], equals(0xDE));
+      expect(bytes[7], equals(0xF0));
     });
   });
 

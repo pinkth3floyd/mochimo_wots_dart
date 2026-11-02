@@ -103,8 +103,8 @@ void main() {
         final data = Uint8List.fromList([0x12, 0x34]);
         final hasher = MochimoHasher();
         hasher.update(data);
-        final result1 = hasher.digest();
-        final result2 = hasher.digest(); // Should be empty hash
+        hasher.digest();
+        final result2 = hasher.digest();
         expect(result2, equals(getNodeHash(Uint8List(0))));
       });
     });

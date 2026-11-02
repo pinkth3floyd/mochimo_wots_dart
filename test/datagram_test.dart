@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:mochimo_wots/core/model/byte_buffer.dart';
 import 'package:mochimo_wots/core/protocol/datagram.dart';
 import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
@@ -17,20 +16,7 @@ void main() {
         datagram.setCurrentBlockHeight(BigInt.from(1000));
         datagram.setBlocknum(BigInt.from(2000));
 
-        final sourceAddr = Uint8List(2208)..fillRange(0, 2208, 0x11);
-        final destAddr = Uint8List(2208)..fillRange(0, 2208, 0x22);
-        final changeAddr = Uint8List(2208)..fillRange(0, 2208, 0x33);
-
-        datagram.setSourceAddress(sourceAddr);
-        datagram.setDestinationAddress(destAddr);
-        datagram.setChangeAddress(changeAddr);
-
-        datagram.setTotalSendBigInt(BigInt.from(1000000));
-        datagram.setTotalChangeBigInt(BigInt.from(500000));
-        datagram.setFeeBigInt(BigInt.from(10000));
-
-        final signature = Uint8List(2144)..fillRange(0, 2144, 0x44);
-        datagram.setSignature(signature);
+        datagram.setPayload(Uint8List.fromList([1, 2, 3, 4]));
 
         // Serialize and deserialize
         final serialized = datagram.serialize();
@@ -42,43 +28,30 @@ void main() {
         expect(deserialized.getOperation(), equals(Operation.transaction));
         expect(deserialized.getCurrentBlockHeight(), equals(BigInt.from(1000)));
         expect(deserialized.getBlocknum(), equals(BigInt.from(2000)));
-
-        expect(ByteUtils.areEqual(deserialized.getSourceAddress(), sourceAddr),
-            isTrue);
-        expect(
-            ByteUtils.areEqual(deserialized.getDestinationAddress(), destAddr),
-            isTrue);
-        expect(ByteUtils.areEqual(deserialized.getChangeAddress(), changeAddr),
-            isTrue);
-
-        expect(
-            ByteUtils.areEqual(deserialized.getSignature(), signature), isTrue);
+        expect(deserialized.getPayload(), Uint8List.fromList([1, 2, 3, 4]));
       });
 
       test('should handle invalid operation code', () {
-        final buffer = Uint8List(8920);
+        final buffer = Uint8List(DatagramConstants.headerLength + 4);
+        buffer[8] = 0xff;
         expect(() => Datagram.of(buffer), throwsA(isA<StateError>()));
       });
 
       test('should handle invalid data length', () {
-        final buffer = Uint8List(8919); // Too short
+        final buffer = Uint8List(10);
         expect(() => Datagram.of(buffer), throwsA(isA<ArgumentError>()));
       });
-    });
 
-    group('capabilities', () {
-      test('should parse capabilities', () {
+      test('should use the node network id and trailer', () {
         final datagram = Datagram();
-
-        // Set some capabilities using the public method
-        datagram.setCapability(Capability.push, true);
-        datagram.setCapability(Capability.wallet, true);
-
-        final capabilities = Datagram.parseCapabilities(datagram);
-
-        expect(capabilities.contains(Capability.push), isTrue);
-        expect(capabilities.contains(Capability.wallet), isTrue);
-        expect(capabilities.contains(Capability.sanctuary), isFalse);
+        final serialized = datagram.serialize();
+        expect(serialized[0], equals(DatagramConstants.version));
+        expect(serialized[2], equals(0x39));
+        expect(serialized[3], equals(0x05));
+        expect(serialized[serialized.length - 2], equals(0xcd));
+        expect(serialized[serialized.length - 1], equals(0xab));
+        expect(datagram.getNetwork(), equals(DatagramConstants.networkId));
+        expect(datagram.getTrailer(), equals(DatagramConstants.trailer));
       });
     });
 
@@ -153,17 +126,11 @@ void main() {
       });
     });
 
-    group('peer list handling', () {
-      test('should handle add to peer list flag', () {
+    group('payload length', () {
+      test('should report the bytes that follow the header', () {
         final datagram = Datagram();
-
-        datagram.setAddToPeerList(true);
-        expect(datagram.isAddToPeerList(), isTrue);
+        datagram.serialize();
         expect(datagram.getTransactionBufferLength(), equals(0));
-
-        datagram.setAddToPeerList(false);
-        expect(datagram.isAddToPeerList(), isFalse);
-        expect(datagram.getTransactionBufferLength(), equals(1));
       });
     });
 
@@ -187,91 +154,38 @@ void main() {
       });
     });
 
-    group('address handling', () {
-      test('should handle source address', () {
+    group('payload', () {
+      test('should round-trip the bytes after the header', () {
         final datagram = Datagram();
-        final addr = Uint8List(2208)..fillRange(0, 2208, 0x11);
+        final payload = Uint8List.fromList([9, 8, 7]);
+        datagram.setPayload(payload);
+        expect(datagram.getPayload(), payload);
+        expect(datagram.getTransactionBufferLength(), 3);
 
-        datagram.setSourceAddress(addr);
-        expect(ByteUtils.areEqual(datagram.getSourceAddress(), addr), isTrue);
-
-        // Should throw on invalid length
-        expect(() => datagram.setSourceAddress(Uint8List(10)),
-            throwsA(isA<ArgumentError>()));
+        final parsed = Datagram.of(datagram.serialize());
+        expect(parsed.getPayload(), payload);
       });
 
-      test('should handle destination address', () {
-        final datagram = Datagram();
-        final addr = Uint8List(2208)..fillRange(0, 2208, 0x22);
-
-        datagram.setDestinationAddress(addr);
+      test('should reject a payload longer than 65535 bytes', () {
         expect(
-            ByteUtils.areEqual(datagram.getDestinationAddress(), addr), isTrue);
-
-        expect(() => datagram.setDestinationAddress(Uint8List(10)),
-            throwsA(isA<ArgumentError>()));
+            () => Datagram().setPayload(Uint8List(65536)), throwsArgumentError);
       });
 
-      test('should handle change address', () {
-        final datagram = Datagram();
-        final addr = Uint8List(2208)..fillRange(0, 2208, 0x33);
+      test('should build a balance query and read a ledger entry', () {
+        final address = Uint8List(40)..fillRange(0, 40, 0xab);
+        final query = Datagram.balanceQuery(address);
+        expect(query.getOperation(), Operation.balance);
+        expect(query.getPayload(), address);
 
-        datagram.setChangeAddress(addr);
-        expect(ByteUtils.areEqual(datagram.getChangeAddress(), addr), isTrue);
-
-        expect(() => datagram.setChangeAddress(Uint8List(10)),
-            throwsA(isA<ArgumentError>()));
-      });
-    });
-
-    group('amount handling', () {
-      test('should handle total send amount', () {
-        final datagram = Datagram();
-        final amount = Uint8List(8)..fillRange(0, 8, 0x44);
-
-        datagram.setTotalSend(amount);
-        expect(ByteUtils.areEqual(datagram.getTotalSend(), amount), isTrue);
-
-        // Test bigint version
-        datagram.setTotalSendBigInt(BigInt.from(1000000));
-        final buffer = ByteBuffer.wrap(datagram.getTotalSend());
-        expect(ByteUtils.readLittleEndianUnsigned(buffer).toInt(),
-            equals(1000000));
-
-        expect(() => datagram.setTotalSend(Uint8List(10)),
-            throwsA(isA<ArgumentError>()));
-      });
-
-      test('should handle total change amount', () {
-        final datagram = Datagram();
-        final amount = Uint8List(8)..fillRange(0, 8, 0x55);
-
-        datagram.setTotalChange(amount);
-        expect(ByteUtils.areEqual(datagram.getTotalChange(), amount), isTrue);
-
-        datagram.setTotalChangeBigInt(BigInt.from(500000));
-        final buffer = ByteBuffer.wrap(datagram.getTotalChange());
+        final entry = Uint8List(48);
+        entry.setRange(0, 40, address);
+        entry[40] = 10;
+        final ledger = Datagram.readLedgerEntry(entry);
+        expect(ledger.address, address);
+        expect(ledger.balance, BigInt.from(10));
+        expect(() => Datagram.balanceQuery(Uint8List(20)), throwsArgumentError);
         expect(
-            ByteUtils.readLittleEndianUnsigned(buffer).toInt(), equals(500000));
-
-        expect(() => datagram.setTotalChange(Uint8List(10)),
-            throwsA(isA<ArgumentError>()));
-      });
-
-      test('should handle fee amount', () {
-        final datagram = Datagram();
-        final amount = Uint8List(8)..fillRange(0, 8, 0x66);
-
-        datagram.setFee(amount);
-        expect(ByteUtils.areEqual(datagram.getFee(), amount), isTrue);
-
-        datagram.setFeeBigInt(BigInt.from(10000));
-        final buffer = ByteBuffer.wrap(datagram.getFee());
-        expect(
-            ByteUtils.readLittleEndianUnsigned(buffer).toInt(), equals(10000));
-
-        expect(() => datagram.setFee(Uint8List(10)),
-            throwsA(isA<ArgumentError>()));
+            () => Datagram.readLedgerEntry(Uint8List(40)), throwsArgumentError);
       });
     });
 
@@ -300,19 +214,6 @@ void main() {
 
         datagram.setBlocknum(BigInt.from(2000));
         expect(datagram.getBlocknum(), equals(BigInt.from(2000)));
-      });
-    });
-
-    group('signature handling', () {
-      test('should handle signature', () {
-        final datagram = Datagram();
-        final sig = Uint8List(2144)..fillRange(0, 2144, 0x88);
-
-        datagram.setSignature(sig);
-        expect(ByteUtils.areEqual(datagram.getSignature(), sig), isTrue);
-
-        expect(() => datagram.setSignature(Uint8List(10)),
-            throwsA(isA<ArgumentError>()));
       });
     });
 

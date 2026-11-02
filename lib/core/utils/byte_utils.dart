@@ -6,7 +6,7 @@ typedef HexString = String;
 
 class ByteUtils {
   // Private constructor to prevent instantiation
-  ByteUtils._();
+  ByteUtils._(); // coverage:ignore-line
 
   /// Hexadecimal characters for byte-to-hex conversion
   static const hexChars = '0123456789abcdef';
