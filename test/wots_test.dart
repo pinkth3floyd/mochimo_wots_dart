@@ -1,9 +1,6 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
-import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 import 'package:mochimo_wots/core/protocol/wots.dart';
-import 'package:mochimo_wots/core/protocol/tags.dart';
-import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   group('WOTS Protocol', () {

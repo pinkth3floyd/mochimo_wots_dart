@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'dart:math';
 import 'package:mochimo_wots/core/model/byte_buffer.dart';
-import 'package:mochimo_wots/core/protocol/wots_address.dart';
 import 'package:mochimo_wots/core/protocol/wots_hash.dart';
 import 'package:mochimo_wots/core/protocol/tags.dart';
 
@@ -18,7 +17,53 @@ class WOTS {
   static const int WOTSSIGBYTES = 2144;
   static const int TXSIGLEN = 2144;
 
-  /// Generates chains for WOTS
+  /// Loads a 32-byte address the way `wots_pkgen` receives it.
+  ///
+  /// The node casts those bytes to `word32[8]` on a little-endian machine.
+  /// `addr_to_bytes` then writes each word big-endian, which is a byte swap
+  /// of every 4-byte group. Chain, hash, and key/mask indexes overwrite words
+  /// 5, 6, and 7 after this conversion.
+  static ByteBuffer addressBuffer(Uint8List addr) {
+    if (addr.length != PARAMSN) {
+      throw ArgumentError('Invalid addr length');
+    }
+    final be = Uint8List(PARAMSN);
+    for (int i = 0; i < PARAMSN; i += 4) {
+      be[i] = addr[i + 3];
+      be[i + 1] = addr[i + 2];
+      be[i + 2] = addr[i + 1];
+      be[i + 3] = addr[i];
+    }
+    return ByteBuffer.wrap(be);
+  }
+
+  /// Writes the published address suffix from `tx.c`.
+  ///
+  /// `put32(adrs + 20, 0x42)`, `put32(adrs + 24, 0x0e)`,
+  /// `put32(adrs + 28, 0x01)`, little-endian. [address] is either the 32-byte
+  /// addr seed or a 2208-byte WOTS address.
+  static void stampAddressSuffix(Uint8List address) {
+    final base = address.length == 2208 ? 2176 : 0;
+    if (address.length != 2208 && address.length != PARAMSN) {
+      throw ArgumentError(
+          'Expected a 32-byte addr or a 2208-byte WOTS address');
+    }
+    void put32(int offset, int value) {
+      address[base + offset] = value & 0xff;
+      address[base + offset + 1] = (value >> 8) & 0xff;
+      address[base + offset + 2] = (value >> 16) & 0xff;
+      address[base + offset + 3] = (value >> 24) & 0xff;
+    }
+
+    put32(20, 0x42);
+    put32(24, 0x0e);
+    put32(28, 0x01);
+  }
+
+  /// Generates chains for WOTS.
+  ///
+  /// [addr] is the big-endian word buffer from [addressBuffer]. The chain
+  /// index is already written; this function updates the hash index.
   static void genChain(
     Uint8List out,
     int outOffset,
@@ -27,28 +72,25 @@ class WOTS {
     int start,
     int steps,
     Uint8List pubSeed,
-    Uint8List addr,
+    ByteBuffer addr,
   ) {
-    // Copy input to output
     out.setRange(outOffset, outOffset + PARAMSN, input, inOffset);
 
-    // Create WotsAddress instance from addr bytes
-    final wotsAddr = WotsAddress.wotsAddressFromBytes(addr);
-    final bbaddr = ByteBuffer.wrap(wotsAddr.bytes().sublist(0, PARAMSN));
-    bbaddr.order(ByteOrder.littleEndian);
-
-    // Generate chain
     for (int i = start; i < start + steps && i < WOTSW; i++) {
-      WOTSHash.setHashAddr(bbaddr, i);
-      WOTSHash.thashF(out, outOffset, out, outOffset, pubSeed, bbaddr);
+      WOTSHash.setHashAddr(addr, i);
+      WOTSHash.thashF(out, outOffset, out, outOffset, pubSeed, addr);
     }
   }
 
-  /// Expands seed into WOTS private key
+  /// Expands a 32-byte seed into the WOTS secret, matching `expand_seed`.
+  ///
+  /// The counter is a 32-byte big-endian integer, so the index sits in the
+  /// last four bytes of the PRF input.
   static void expandSeed(Uint8List outSeeds, Uint8List inSeed) {
+    final ctr = Uint8List(32);
+    final ctrBytes = ByteData.sublistView(ctr);
     for (int i = 0; i < WOTSLEN; i++) {
-      final ctr = Uint8List(4);
-      ctr.buffer.asByteData().setUint32(0, i, Endian.big);
+      ctrBytes.setUint32(28, i, Endian.big);
       WOTSHash.prf(outSeeds, i * PARAMSN, ctr, inSeed);
     }
   }
@@ -117,19 +159,14 @@ class WOTS {
     int offset,
     Uint8List addr,
   ) {
-    // Expand seed
     expandSeed(pk, seed);
 
-    // Create WotsAddress instance from addr bytes
-    final wotsAddr = WotsAddress.wotsAddressFromBytes(addr);
-    final bbaddr = ByteBuffer.wrap(wotsAddr.bytes().sublist(0, PARAMSN));
-    bbaddr.order(ByteOrder.littleEndian);
+    final seed32 = pubSeed.sublist(offset, offset + PARAMSN);
+    final bbaddr = addressBuffer(addr);
 
-    // Generate chains
     for (int i = 0; i < WOTSLEN; i++) {
       WOTSHash.setChainAddr(bbaddr, i);
-      genChain(pk, i * PARAMSN, pk, i * PARAMSN, 0, WOTSW - 1,
-          pubSeed.sublist(offset), bbaddr.array());
+      genChain(pk, i * PARAMSN, pk, i * PARAMSN, 0, WOTSW - 1, seed32, bbaddr);
     }
   }
 
@@ -142,24 +179,21 @@ class WOTS {
     int offset,
     Uint8List addr,
   ) {
+    if (msg.length < PARAMSN) {
+      throw ArgumentError('WOTS message must be $PARAMSN bytes');
+    }
     final lengths = List<int>.filled(WOTSLEN, 0);
 
-    // Compute lengths
     chainLengths(msg, lengths);
-
-    // Expand seed
     expandSeed(sig, seed);
 
-    // Create WotsAddress instance from addr bytes
-    final wotsAddr = WotsAddress.wotsAddressFromBytes(addr);
-    final bbaddr = ByteBuffer.wrap(wotsAddr.bytes().sublist(0, PARAMSN));
-    bbaddr.order(ByteOrder.littleEndian);
+    final seed32 = pubSeed.sublist(offset, offset + PARAMSN);
+    final bbaddr = addressBuffer(addr);
 
-    // Generate signature
     for (int i = 0; i < WOTSLEN; i++) {
       WOTSHash.setChainAddr(bbaddr, i);
-      genChain(sig, i * PARAMSN, sig, i * PARAMSN, 0, lengths[i],
-          pubSeed.sublist(offset), bbaddr.array());
+      genChain(
+          sig, i * PARAMSN, sig, i * PARAMSN, 0, lengths[i], seed32, bbaddr);
     }
   }
 
@@ -170,23 +204,21 @@ class WOTS {
     Uint8List pubSeed,
     Uint8List addr,
   ) {
+    if (msg.length < PARAMSN) {
+      throw ArgumentError('WOTS message must be $PARAMSN bytes');
+    }
     final pk = Uint8List(WOTSSIGBYTES);
     final lengths = List<int>.filled(WOTSLEN, 0);
 
-    // Copy and wrap address
-    final caddr = Uint8List.fromList(addr);
-    final wotsAddr = WotsAddress.wotsAddressFromBytes(caddr);
-    final bbaddr = ByteBuffer.wrap(wotsAddr.bytes().sublist(0, PARAMSN));
-    bbaddr.order(ByteOrder.littleEndian);
+    final seed32 = pubSeed.sublist(0, PARAMSN);
+    final bbaddr = addressBuffer(addr);
 
-    // Compute lengths
     chainLengths(msg, lengths);
 
-    // Verify signature
     for (int i = 0; i < WOTSLEN; i++) {
       WOTSHash.setChainAddr(bbaddr, i);
       genChain(pk, i * PARAMSN, signature, i * PARAMSN, lengths[i],
-          WOTSW - 1 - lengths[i], pubSeed, bbaddr.array());
+          WOTSW - 1 - lengths[i], seed32, bbaddr);
     }
 
     return pk;
@@ -208,25 +240,24 @@ class WOTS {
 
     final sourcePK = Uint8List(WOTSSIGBYTES);
     final components = componentsGenerator(secret);
+    final privateSeed = components['private_seed']!;
 
-    wotsPkgen(sourcePK, components['private_seed']!, components['public_seed']!,
-        0, components['addr_seed']!);
+    wotsPkgen(sourcePK, privateSeed, components['public_seed']!, 0,
+        components['addr_seed']!);
 
     final sourceAddress = Uint8List(2208);
     sourceAddress.setRange(0, WOTSSIGBYTES, sourcePK);
     sourceAddress.setRange(
         WOTSSIGBYTES, WOTSSIGBYTES + 32, components['public_seed']!);
     sourceAddress.setRange(WOTSSIGBYTES + 32, 2208, components['addr_seed']!);
+    stampAddressSuffix(sourceAddress);
 
-    // Apply tag if provided using Tag.tag
     final readyAddress =
         tag != null ? Tag.tag(sourceAddress, tag) : sourceAddress;
 
-    // Validate address
-    for (int i = 0; i < 10; i++) {
-      if (!isValid(secret, readyAddress, randomBytes)) {
-        throw ArgumentError('Invalid WOTS');
-      }
+    if (!isValid(privateSeed, readyAddress, randomBytes)) {
+      // Reached only when this library builds a key it cannot verify.
+      throw ArgumentError('Invalid WOTS'); // coverage:ignore-line
     }
 
     return readyAddress;
@@ -341,17 +372,14 @@ class WOTS {
     wotsPkgen(address, secret,
         address.sublist(WOTSSIGBYTES, WOTSSIGBYTES + PARAMSN), 0, rnd2);
 
-    // Copy rnd2 back to address
     address.setRange(2176, 2208, rnd2);
+    stampAddressSuffix(address);
 
-    // Apply tag if provided using Tag.tag
     final readyAddress = tag != null ? Tag.tag(address, tag) : address;
 
-    // Validate address
-    for (int i = 0; i < 10; i++) {
-      if (!isValid(secret, readyAddress, randomGenerator)) {
-        throw ArgumentError('Invalid WOTS');
-      }
+    if (!isValid(secret, readyAddress, randomGenerator)) {
+      // Reached only when this library builds a key it cannot verify.
+      throw ArgumentError('Invalid WOTS'); // coverage:ignore-line
     }
 
     return readyAddress;

@@ -1,31 +1,26 @@
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:mochimo_wots/mochimo_wots.dart';
-import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   print('WOTS Signing and Verification Example\n');
 
   // Create a wallet for signing
   final secret = Uint8List(32)..fillRange(0, 32, 0x56);
-  final tag = Uint8List(12)..fillRange(0, 12, 0x34);
+  final tag = Uint8List(WotsAddress.ADDR_TAG_LEN)..fillRange(0, 20, 0x34);
 
-  // Create a new wallet with name, secret, and tag
-  final wallet = WOTSWallet(name: "Test Wallet", secret: secret, addrTag: tag);
-
-  print('Created wallet:');
-
-  // Get and display the address, handling potential null
+  final wallet = WOTSWallet.create('Test Wallet', secret, tag);
   final address = wallet.getAddress();
   if (address == null) {
-    print('Error: Could not generate wallet address');
+    print('Wallet is missing an account address');
     return;
   }
-  print(
-      'Address (first 32 bytes): ${ByteUtils.bytesToHex(address.sublist(0, 32))}...\n');
 
-  // Create a message to sign
-  final message = "Hello, Mochimo!";
+  print('Account address (40 bytes): ${ByteUtils.bytesToHex(address)}');
+  print('Base58 tag: ${wallet.getAddrTagBase58()}\n');
+
+  // A message that is not 32 bytes is SHA-256 hashed before it is signed.
+  final message = 'Hello, Mochimo!';
   final messageBytes = Uint8List.fromList(utf8.encode(message));
   print('Original message: "$message"');
   print('Message bytes: ${ByteUtils.bytesToHex(messageBytes)}\n');

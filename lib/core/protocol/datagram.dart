@@ -2,40 +2,44 @@ import 'dart:typed_data';
 import 'package:mochimo_wots/core/model/byte_buffer.dart';
 import 'package:mochimo_wots/core/utils/byte_utils.dart' hide ByteArray;
 import 'package:mochimo_wots/core/utils/crc16.dart';
-import 'package:meta/meta.dart';
 
-/// Datagram constants
+/// Framing constants for a Mochimo transaction PDU.
+///
+/// The header is 124 bytes, matching `TX_UP_TO_LEN`. The network id is
+/// `0x3905` and is written big-endian (`39 05`). The trailer bytes are
+/// `CD AB` (`TXTRAILER = 0xCDAB`).
 class DatagramConstants {
-  static const int LENGTH = 8920;
+  static const int headerLength = 124;
+  static const int networkId = 0x3905;
+  static const int trailer = 0xCDAB;
+  static const int version = 4;
   static const int TRANSACTION_BUFFER_LENGTH_OFFSET = 122;
   static const int TRANSACTION_BUFFER_LENGTH_LENGTH = 2;
   static const int TRANSACTION_BUFFER_OFFSET = 124;
-  static const int TRANSACTION_BUFFER_LENGTH = 8792;
-  static const int ADD_TO_PEER_LIST_TRANSACTION_BUFFER_LENGTH = 0;
-  static const int DO_NOT_ADD_TO_PEER_LIST_TRANSACTION_BUFFER_LENGTH = 1;
 }
 
-/// Capability flags for datagram
-enum Capability {
-  push(7),
-  wallet(6),
-  sanctuary(5),
-  mFee(4),
-  logging(3);
-
-  final int value;
-  const Capability(this.value);
-}
-
-/// Operation enum
+/// Opcodes from the node, `OP_NULL` through `OP_IDENTIFY`.
 enum Operation {
-  transaction(1),
-  block(2),
-  blockRequest(3),
-  peerRequest(4),
-  peerData(5),
-  balanceRequest(6),
-  balanceData(7);
+  nullOp(0),
+  hello(1),
+  helloAck(2),
+  transaction(3),
+  found(4),
+  getBlock(5),
+  getIpList(6),
+  sendFile(7),
+  sendIpList(8),
+  busy(9),
+  nack(10),
+  getTFile(11),
+  balance(12),
+  sendBalance(13),
+  resolve(14),
+  getCBlock(15),
+  minedBlock(16),
+  hash(17),
+  trailerFile(18),
+  identify(19);
 
   final int value;
   const Operation(this.value);
@@ -43,9 +47,8 @@ enum Operation {
 
 /// Datagram implementation
 class Datagram {
-  int _version = 4;
-  List<bool> _flags = List.filled(8, false);
-  int _network = 1337;
+  int _version = DatagramConstants.version;
+  int _network = DatagramConstants.networkId;
   int _id1 = 0;
   int _id2 = 0;
   Operation _operation = Operation.transaction;
@@ -54,35 +57,42 @@ class Datagram {
   Uint8List _cblockhash = Uint8List(32);
   Uint8List _pblockhash = Uint8List(32);
   Uint8List _weight = Uint8List(32);
-  int _transactionBufferLength = 1;
-
-  Uint8List _sourceAddress = Uint8List(2208);
-  Uint8List _destinationAddress = Uint8List(2208);
-  Uint8List _changeAddress = Uint8List(2208);
-
-  Uint8List _totalSend = Uint8List(8);
-  Uint8List _totalChange = Uint8List(8);
-  Uint8List _fee = Uint8List(8);
-
-  Uint8List _signature = Uint8List(2144);
+  int _transactionBufferLength = 0;
+  Uint8List _payloadBytes = Uint8List(0);
 
   int? _crc;
-  int _trailer = 43981;
+  int _trailer = DatagramConstants.trailer;
 
-  /// Serializes datagram to bytes
+  /// Replaces the PDU payload.
+  ///
+  /// A spend uses the bytes from `MochimoTransaction`. A balance query uses
+  /// the 40-byte account address. The length is written as a 16-bit count.
+  Datagram setPayload(ByteArray payload) {
+    if (payload.length > 0xffff) {
+      throw ArgumentError('Payload does not fit in the 16-bit length');
+    }
+    _payloadBytes = Uint8List.fromList(payload);
+    _transactionBufferLength = _payloadBytes.length;
+    return this;
+  }
+
+  /// Bytes that follow the 124-byte header.
+  ByteArray getPayload() => Uint8List.fromList(_payloadBytes);
+
+  /// Serializes the PDU: 124-byte header, payload, CRC-16, trailer.
   ByteArray serialize() {
-    final buffer = ByteBuffer.allocate(DatagramConstants.LENGTH);
+    final payload = _payloadBytes;
+    _transactionBufferLength = payload.length;
+    final buffer = ByteBuffer.allocate(
+        DatagramConstants.headerLength + payload.length + 4);
     buffer.order(ByteOrder.littleEndian);
 
-    // Write version
     buffer.put(_version);
+    buffer.put(0);
 
-    // Write flags
-    final flagBits = _flags.map((f) => f ? '1' : '0').join('');
-    buffer.put(int.parse(flagBits, radix: 2));
-
-    // Write network and IDs
-    buffer.put(ByteUtils.numberToLittleEndian(_network, 2));
+    // Network id is stored big-endian: bytes 0x39, 0x05.
+    buffer.put((DatagramConstants.networkId >> 8) & 0xff);
+    buffer.put(DatagramConstants.networkId & 0xff);
     buffer.put(ByteUtils.numberToLittleEndian(_id1, 2));
     buffer.put(ByteUtils.numberToLittleEndian(_id2, 2));
     buffer.put(ByteUtils.numberToLittleEndian(_operation.value, 2));
@@ -93,28 +103,14 @@ class Datagram {
     buffer.put(_cblockhash);
     buffer.put(_pblockhash);
     buffer.put(_weight);
-    buffer.put(ByteUtils.numberToLittleEndian(_transactionBufferLength, 2));
+    buffer.put(ByteUtils.numberToLittleEndian(payload.length, 2));
+    buffer.put(payload);
 
-    // Write addresses
-    buffer.put(_sourceAddress);
-    buffer.put(_destinationAddress);
-    buffer.put(_changeAddress);
-
-    // Write amounts
-    buffer.put(_totalSend);
-    buffer.put(_totalChange);
-    buffer.put(_fee);
-
-    // Write signature
-    buffer.put(_signature);
-
-    // Calculate and write CRC
-    final data = buffer.array();
-    _crc = CRC16.crc(data, 0, 8916);
+    final covered = DatagramConstants.headerLength + payload.length;
+    _crc = CRC16.crc(buffer.array(), 0, covered);
     buffer.put(ByteUtils.numberToLittleEndian(_crc!, 2));
-
-    // Write trailer
-    buffer.put(ByteUtils.numberToLittleEndian(_trailer, 2));
+    buffer.put((DatagramConstants.trailer >> 8) & 0xff);
+    buffer.put(DatagramConstants.trailer & 0xff);
 
     return buffer.array();
   }
@@ -188,9 +184,9 @@ class Datagram {
   ByteArray getWeight() => Uint8List.fromList(_weight);
 
   /// Sets weight from bigint
+  /// Stores [weight] as a 32-byte little-endian integer.
   Datagram setWeight(BigInt weight) {
-    final bytes = ByteUtils.fit(weight.toString(), 32);
-    _weight = ByteUtils.bytesToLittleEndian(bytes);
+    _weight = ByteUtils.fit(weight.toString(), 32);
     return this;
   }
 
@@ -206,106 +202,34 @@ class Datagram {
   /// Gets CRC
   int getCRC() => _crc ?? 0;
 
-  /// Gets source address
-  ByteArray getSourceAddress() => Uint8List.fromList(_sourceAddress);
-
-  /// Sets source address
-  Datagram setSourceAddress(ByteArray addr) {
-    if (addr.length != 2208) {
-      throw ArgumentError('Invalid address length');
+  /// Asks for the ledger entry of a 40-byte account address.
+  ///
+  /// The node opcode is `OP_BALANCE`. A reply uses [Operation.sendBalance]
+  /// and a 48-byte entry: the same address, then the balance as a
+  /// little-endian 64-bit integer (`LENTRY` in `src/types.h`).
+  static Datagram balanceQuery(ByteArray address) {
+    if (address.length != 40) {
+      throw ArgumentError('A balance query takes a 40-byte account address');
     }
-    _sourceAddress = Uint8List.fromList(addr);
-    return this;
+    return Datagram()
+      ..setOperation(Operation.balance)
+      ..setPayload(address);
   }
 
-  /// Gets destination address
-  ByteArray getDestinationAddress() => Uint8List.fromList(_destinationAddress);
-
-  /// Sets destination address
-  Datagram setDestinationAddress(ByteArray addr) {
-    if (addr.length != 2208) {
-      throw ArgumentError('Invalid address length');
+  /// Reads an `OP_SEND_BAL` payload into an address and a balance.
+  static ({Uint8List address, BigInt balance}) readLedgerEntry(
+      ByteArray payload) {
+    if (payload.length != 48) {
+      throw ArgumentError('A ledger entry is 48 bytes');
     }
-    _destinationAddress = Uint8List.fromList(addr);
-    return this;
-  }
-
-  /// Gets change address
-  ByteArray getChangeAddress() => Uint8List.fromList(_changeAddress);
-
-  /// Sets change address
-  Datagram setChangeAddress(ByteArray addr) {
-    if (addr.length != 2208) {
-      throw ArgumentError('Invalid address length');
+    var balance = BigInt.zero;
+    for (var i = 47; i >= 40; i--) {
+      balance = (balance << 8) | BigInt.from(payload[i]);
     }
-    _changeAddress = Uint8List.fromList(addr);
-    return this;
-  }
-
-  /// Gets total send amount
-  ByteArray getTotalSend() => Uint8List.fromList(_totalSend);
-
-  /// Sets total send amount
-  Datagram setTotalSend(ByteArray amount) {
-    if (amount.length != 8) {
-      throw ArgumentError('Invalid amount length');
-    }
-    _totalSend = Uint8List.fromList(amount);
-    return this;
-  }
-
-  /// Sets total send amount from bigint
-  Datagram setTotalSendBigInt(BigInt amount) {
-    _totalSend = ByteUtils.numberToLittleEndian(amount.toInt(), 8);
-    return this;
-  }
-
-  /// Gets total change amount
-  ByteArray getTotalChange() => Uint8List.fromList(_totalChange);
-
-  /// Sets total change amount
-  Datagram setTotalChange(ByteArray amount) {
-    if (amount.length != 8) {
-      throw ArgumentError('Invalid amount length');
-    }
-    _totalChange = Uint8List.fromList(amount);
-    return this;
-  }
-
-  /// Sets total change amount from bigint
-  Datagram setTotalChangeBigInt(BigInt amount) {
-    _totalChange = ByteUtils.numberToLittleEndian(amount.toInt(), 8);
-    return this;
-  }
-
-  /// Gets fee amount
-  ByteArray getFee() => Uint8List.fromList(_fee);
-
-  /// Sets fee amount
-  Datagram setFee(ByteArray amount) {
-    if (amount.length != 8) {
-      throw ArgumentError('Invalid amount length');
-    }
-    _fee = Uint8List.fromList(amount);
-    return this;
-  }
-
-  /// Sets fee amount from bigint
-  Datagram setFeeBigInt(BigInt amount) {
-    _fee = ByteUtils.numberToLittleEndian(amount.toInt(), 8);
-    return this;
-  }
-
-  /// Gets signature
-  ByteArray getSignature() => Uint8List.fromList(_signature);
-
-  /// Sets signature
-  Datagram setSignature(ByteArray sig) {
-    if (sig.length != 2144) {
-      throw ArgumentError('Invalid signature length');
-    }
-    _signature = Uint8List.fromList(sig);
-    return this;
+    return (
+      address: Uint8List.fromList(payload.sublist(0, 40)),
+      balance: balance
+    );
   }
 
   /// Gets previous block hash
@@ -323,96 +247,63 @@ class Datagram {
     return this;
   }
 
-  /// Checks if should add to peer list
-  bool isAddToPeerList() => _transactionBufferLength != 1;
-
-  /// Sets add to peer list flag
-  Datagram setAddToPeerList(bool value) {
-    _transactionBufferLength = value ? 0 : 1;
-    return this;
-  }
-
   /// Gets version
   int getVersion() => _version;
 
   /// Creates a clone of this datagram
   Datagram clone() => Datagram.of(serialize());
 
-  /// Creates datagram from bytes
+  /// Creates a datagram from a serialized PDU.
   static Datagram of(ByteArray data) {
-    if (data.length < DatagramConstants.LENGTH) {
-      throw ArgumentError(
-          'Data length cannot be less than datagram length (${DatagramConstants.LENGTH})');
+    const minLength = DatagramConstants.headerLength + 4;
+    if (data.length < minLength) {
+      throw ArgumentError('Data length cannot be less than $minLength bytes');
     }
 
-    final buffer = ByteBuffer.allocate(DatagramConstants.LENGTH);
+    final buffer = ByteBuffer.wrap(data);
     buffer.order(ByteOrder.littleEndian);
-    buffer.put(data);
-    buffer.rewind();
 
     final datagram = Datagram();
 
-    // Read version and flags
     datagram._version = buffer.get_();
-    final flag = buffer.get_();
-    final bits = flag.toRadixString(2).padLeft(8, '0');
-    datagram._flags = bits.split('').map((b) => b != '0').toList();
-
-    // Read network and IDs using 2-byte values
-    datagram._network = ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
+    buffer.get_();
+    final networkHi = buffer.get_();
+    final networkLo = buffer.get_();
+    datagram._network = (networkHi << 8) | networkLo;
     datagram._id1 = ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
     datagram._id2 = ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
 
-    // Read operation
     final opCode = ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
-    if (opCode == 0) {
-      throw StateError('Invalid operation code 0');
-    }
-    datagram._operation =
-        Operation.values.firstWhere((op) => op.value == opCode);
+    datagram._operation = Operation.values.firstWhere(
+      (op) => op.value == opCode,
+      orElse: () => throw StateError('Invalid operation code $opCode'),
+    );
 
-    // Read block info using 8-byte values
     datagram._cblock = ByteUtils.readLittleEndianUnsigned(buffer, 8);
     datagram._blocknum = ByteUtils.readLittleEndianUnsigned(buffer, 8);
 
-    // Read hashes and weight
     buffer.get(datagram._cblockhash);
     buffer.get(datagram._pblockhash);
     buffer.get(datagram._weight);
 
-    // Read transaction buffer length
     datagram._transactionBufferLength =
         ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
+    final payloadLength = datagram._transactionBufferLength;
+    if (data.length < DatagramConstants.headerLength + payloadLength + 4) {
+      throw ArgumentError(
+          'Data length cannot hold a payload of $payloadLength bytes');
+    }
 
-    // Read addresses
-    buffer.get(datagram._sourceAddress);
-    buffer.get(datagram._destinationAddress);
-    buffer.get(datagram._changeAddress);
+    final payload = Uint8List(payloadLength);
+    buffer.get(payload);
+    datagram._payloadBytes = payload;
 
-    // Read amounts
-    buffer.get(datagram._totalSend);
-    buffer.get(datagram._totalChange);
-    buffer.get(datagram._fee);
-
-    // Read signature
-    buffer.get(datagram._signature);
-
-    // Read CRC and trailer
     datagram._crc = ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
-    datagram._trailer = ByteUtils.readLittleEndianUnsigned(buffer, 2).toInt();
+    final trailerHi = buffer.get_();
+    final trailerLo = buffer.get_();
+    datagram._trailer = (trailerHi << 8) | trailerLo;
 
     return datagram;
-  }
-
-  /// Parses capabilities from datagram
-  static Set<Capability> parseCapabilities(Datagram datagram) {
-    final capabilities = <Capability>{};
-    for (final c in Capability.values) {
-      if (datagram._flags[c.value]) {
-        capabilities.add(c);
-      }
-    }
-    return capabilities;
   }
 
   /// Gets route as weight
@@ -462,11 +353,5 @@ class Datagram {
     }
 
     return ips;
-  }
-
-  /// Sets a capability flag (for testing)
-  @visibleForTesting
-  void setCapability(Capability capability, bool value) {
-    _flags[capability.value] = value;
   }
 }

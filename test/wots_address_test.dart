@@ -168,16 +168,10 @@ void main() {
         expect(
             ByteUtils.areEqual(addr.sublist(0, WotsAddress.ADDR_TAG_LEN), tag),
             isTrue);
-        // The second part of the address should be the tag bytes repeated to fill the remaining length
-        final expectedSecondPart =
-            Uint8List(WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN);
-        for (int i = 0; i < expectedSecondPart.length; i++) {
-          expectedSecondPart[i] = tag[i % tag.length];
-        }
         expect(
             ByteUtils.areEqual(
                 addr.sublist(WotsAddress.ADDR_TAG_LEN, WotsAddress.TXADDRLEN),
-                expectedSecondPart),
+                tag),
             isTrue);
       });
 
@@ -248,13 +242,9 @@ void main() {
         final ripemdHashResult = ripemdHasher.digest(); // This will be 20 bytes
 
         final expectedAddr = Uint8List(WotsAddress.TXADDRLEN);
-        expectedAddr.setAll(0, ripemdHashResult);
-        // Fill the remaining part of the address by repeating the ripemdHashResult bytes
-        int remainingLength = WotsAddress.TXADDRLEN - WotsAddress.ADDR_TAG_LEN;
-        for (int i = 0; i < remainingLength; i++) {
-          expectedAddr[WotsAddress.ADDR_TAG_LEN + i] =
-              ripemdHashResult[i % ripemdHashResult.length];
-        }
+        expectedAddr.setRange(0, WotsAddress.ADDR_TAG_LEN, ripemdHashResult);
+        expectedAddr.setRange(
+            WotsAddress.ADDR_TAG_LEN, WotsAddress.TXADDRLEN, ripemdHashResult);
 
         final expectedAddrHex = ByteUtils.bytesToHex(expectedAddr);
 

@@ -4,13 +4,16 @@ import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 typedef ByteArray = Uint8List;
 
-/**
- * WotsAddress implementation for Mochimo addresses
- */
+///
+/// WotsAddress implementation for Mochimo addresses
+///
 class WotsAddress {
   // Constants
   static const int TXADDRLEN = 40;
-  static const int ADDR_TAG_LEN = 12;
+
+  /// Account tag length on Mochimo 3. A full address is this tag followed
+  /// by a 20-byte hash.
+  static const int ADDR_TAG_LEN = 20;
   static const int WOTS_PK_LEN = 2144;
   static const int TXAMOUNT = 8;
   static const int SHA3LEN512 = 64;
@@ -134,19 +137,18 @@ class WotsAddress {
     return wotsAddressFromBytes(bytes);
   }
 
-  /// Generates an address from an implicit tag.
-  /// This function seems to construct a 40-byte address by repeating parts of the tag.
-  /// @param tag The input tag byte array.
-  /// @returns A new 40-byte address byte array.
+  /// Builds an implicit address: the 20-byte tag copied into both halves.
+  ///
+  /// An implicit account is the one created before the first spend, when the
+  /// account tag and the DSA hash are the same value.
   static Uint8List addrFromImplicit(Uint8List tag) {
-    final addr = Uint8List(TXADDRLEN);
-    // Copy the first ADDR_TAG_LEN bytes of the tag to the beginning of addr
-    addr.setAll(0, tag.sublist(0, ADDR_TAG_LEN));
-    // Fill the remaining part of the address by repeating the tag bytes
-    int remainingLength = TXADDRLEN - ADDR_TAG_LEN;
-    for (int i = 0; i < remainingLength; i++) {
-      addr[ADDR_TAG_LEN + i] = tag[i % tag.length];
+    if (tag.length != ADDR_TAG_LEN) {
+      throw ArgumentError(
+          'Invalid tag length: ${tag.length}. Expected $ADDR_TAG_LEN.');
     }
+    final addr = Uint8List(TXADDRLEN);
+    addr.setRange(0, ADDR_TAG_LEN, tag);
+    addr.setRange(ADDR_TAG_LEN, TXADDRLEN, tag);
     return addr;
   }
 

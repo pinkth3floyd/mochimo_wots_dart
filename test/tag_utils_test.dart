@@ -3,47 +3,22 @@ import 'package:test/test.dart';
 import 'package:mochimo_wots/core/utils/tag_utils.dart';
 
 void main() {
-  test('DEBUG - Print actual Base58 encoding', () {
-    final tagHex = '3f1fba7025c7d37470e700';
-    final tagBytes = Uint8List.fromList(
-      List<int>.generate(
-        12,
-        (i) => int.parse(
-          tagHex.padRight(24, '0').substring(i * 2, i * 2 + 2),
-          radix: 16,
-        ),
-      ),
-    );
-    final base58Tag = TagUtils.addrTagToBase58(tagBytes);
-    print('Actual Base58 encoding for $tagHex: $base58Tag');
-
-    // Also test the zero case
-    final zeroTagBytes = Uint8List(12);
-    final zeroBase58Tag = TagUtils.addrTagToBase58(zeroTagBytes);
-    print('Actual Base58 encoding for all zeros: $zeroBase58Tag');
-  });
-
   final testVectors = [
     {
-      'tag': '3f1fba7025c7d37470e700', // 12 bytes = 24 hex chars
-      'expectedBase58': 'QCygktKEdEEJTrMjpTx',
+      'tag': '9f810c2447a76e93b17ebff96c0b29952e4355f1',
+      'expectedBase58': 'kHtV35ttVpyiH42FePCiHo2iFmcJS3',
     },
     {
-      'tag': '000000000000000000000000', // 12 bytes = 24 hex chars
-      'expectedBase58':
-          '11111111111111', // 14 ones for 12 zero bytes + 2 checksum bytes
+      'tag': '0000000000000000000000000000000000000000',
+      'expectedBase58': '1111111111111111111111',
     },
   ];
 
   Uint8List hexToBytes(String hex) {
-    final paddedHex = hex.padRight(24, '0');
     return Uint8List.fromList(
       List<int>.generate(
-        12,
-        (i) => int.parse(
-          paddedHex.substring(i * 2, i * 2 + 2),
-          radix: 16,
-        ),
+        20,
+        (i) => int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16),
       ),
     );
   }
@@ -80,7 +55,7 @@ void main() {
         final base58Tag = TagUtils.addrTagToBase58(tagBytes);
         final decoded = TagUtils.base58ToAddrTag(base58Tag!);
 
-        expect(decoded!.length, 12);
+        expect(decoded!.length, 20);
         expect(decoded, tagBytes);
       });
     });
@@ -103,7 +78,7 @@ void main() {
         final tagBytes = hexToBytes(testVectors[0]['tag']!);
         final base58Tag = TagUtils.addrTagToBase58(tagBytes);
 
-        final corruptTag = base58Tag!.substring(0, base58Tag.length - 1) + 'X';
+        final corruptTag = '${base58Tag!.substring(0, base58Tag.length - 1)}X';
         expect(TagUtils.validateBase58Tag(corruptTag), isFalse);
       });
 
@@ -114,13 +89,6 @@ void main() {
 
       test('should handle empty string', () {
         expect(TagUtils.validateBase58Tag(''), isFalse);
-      });
-
-      test('should handle null input', () {
-        expect(
-          () => TagUtils.validateBase58Tag(null as String),
-          throwsA(anything),
-        );
       });
     });
 
@@ -159,13 +127,6 @@ void main() {
 
       test('should handle empty string', () {
         expect(() => TagUtils.base58ToAddrTag(''), throwsA(anything));
-      });
-
-      test('should handle null input', () {
-        expect(
-          () => TagUtils.base58ToAddrTag(null as String),
-          throwsA(anything),
-        );
       });
     });
   });

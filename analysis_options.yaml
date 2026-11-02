@@ -1,4 +1,11 @@
-include: package:flutter_lints/flutter.yaml
+include: package:lints/recommended.yaml
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+analyzer:
+  exclude:
+    - example/**
+    - build/**
+
+linter:
+  rules:
+    # Protocol constants keep the names from src/wots.h (WOTSSIGBYTES, PARAMSN).
+    constant_identifier_names: false

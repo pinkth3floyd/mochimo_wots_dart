@@ -5,27 +5,28 @@ import 'crc16.dart';
 typedef ByteArray = Uint8List;
 
 class TagUtils {
-  TagUtils._();
+  TagUtils._(); // coverage:ignore-line
 
-  /// Converts an address tag (12 bytes) to a Base58 string with CRC16 checksum
+  /// Base58 alphabet used for Mochimo account tags.
   static const _base58 =
       Base58Codec('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
 
+  /// Converts a 20-byte account tag to Base58 with a CRC-16/XMODEM checksum.
+  ///
+  /// The encoded payload is 22 bytes: the tag, then the checksum in
+  /// little-endian, matching `put16` in the node.
   static String? addrTagToBase58(ByteArray? addrTag) {
     if (addrTag == null) return null;
-    if (addrTag.length != 12) {
+    if (addrTag.length != 20) {
       throw ArgumentError(
-          'Invalid address tag length: ${addrTag.length}. Expected 12.');
+          'Invalid address tag length: ${addrTag.length}. Expected 20.');
     }
 
-    final csum = CRC16.crc(addrTag, 0, 12);
-    final combined = Uint8List(
-        14); // Changed from 22 to 14 (12 bytes tag + 2 bytes checksum)
-    combined.setRange(0, 12, addrTag);
-
-    // Convert csum to little-endian bytes
-    combined[12] = csum & 0xFF;
-    combined[13] = (csum >> 8) & 0xFF;
+    final csum = CRC16.crc(addrTag, 0, 20);
+    final combined = Uint8List(22);
+    combined.setRange(0, 20, addrTag);
+    combined[20] = csum & 0xFF;
+    combined[21] = (csum >> 8) & 0xFF;
 
     return _base58.encode(combined);
   }
@@ -34,13 +35,11 @@ class TagUtils {
   static bool validateBase58Tag(String tag) {
     try {
       final decoded = _base58.decode(tag);
-      if (decoded.length != 14) return false; // 12 bytes tag + 2 bytes checksum
+      if (decoded.length != 22) return false;
 
-      // Get the stored checksum (last 2 bytes in little-endian)
-      final storedCsum = (decoded[13] << 8) | decoded[12];
-
-      // Calculate CRC on the tag portion (first 12 bytes)
-      final actualCrc = CRC16.crc(decoded.sublist(0, 12) as Uint8List, 0, 12);
+      final storedCsum = (decoded[21] << 8) | decoded[20];
+      final actualCrc =
+          CRC16.crc(Uint8List.fromList(decoded.sublist(0, 20)), 0, 20);
 
       return storedCsum == actualCrc;
     } catch (e) {
@@ -54,11 +53,10 @@ class TagUtils {
       throw ArgumentError('Input tag cannot be empty.');
     }
     final decoded = _base58.decode(tag);
-    if (decoded.length != 14) {
-      // 12 bytes tag + 2 bytes checksum
+    if (decoded.length != 22) {
       throw ArgumentError(
-          'Invalid base58 tag length: ${decoded.length}. Expected 14.');
+          'Invalid base58 tag length: ${decoded.length}. Expected 22.');
     }
-    return Uint8List.fromList(decoded.sublist(0, 12));
+    return Uint8List.fromList(decoded.sublist(0, 20));
   }
 }

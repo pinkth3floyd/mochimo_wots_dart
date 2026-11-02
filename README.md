@@ -18,7 +18,7 @@ Inspired by TypeScript implementation of wots by Anuj [Repo](https://github.com/
 
 ```yaml
 dependencies:
-  mochimo_wots: ^1.0.3
+  mochimo_wots: ^2.0.0
 ```
 
 Then run:
@@ -34,38 +34,35 @@ dart pub get
 ```dart
 import 'dart:typed_data';
 import 'package:mochimo_wots/mochimo_wots.dart';
-import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
-  // Generate a valid WOTS address
-  final sourcePK = Uint8List(2144);
-  final sourcePubSeed = Uint8List(32)..fillRange(0, 32, 0x12); // Deterministic seed
+  final sourcePK = Uint8List(WOTS.WOTSSIGBYTES);
+  final sourceSecret = Uint8List(32)..fillRange(0, 32, 0x56);
+  final sourcePubSeed = Uint8List(32)..fillRange(0, 32, 0x12);
   final sourceRnd2 = Uint8List(32)..fillRange(0, 32, 0x34);
-  
+
   WOTS.wotsPkgen(sourcePK, sourceSecret, sourcePubSeed, 0, sourceRnd2);
-  
-  // Create full address
+
+  // 2144-byte public key, 32-byte public seed, 32-byte address seed.
   final sourceAddress = Uint8List(2208);
-  sourceAddress.setRange(0, 2144, sourcePK);
-  sourceAddress.setRange(2144, 2176, sourcePubSeed);
+  sourceAddress.setRange(0, WOTS.WOTSSIGBYTES, sourcePK);
+  sourceAddress.setRange(WOTS.WOTSSIGBYTES, WOTS.WOTSSIGBYTES + 32, sourcePubSeed);
   sourceAddress.setRange(2176, 2208, sourceRnd2);
-  
-  // Tag the address
-  final tagBytes = Uint8List(12)..fillRange(0, 12, 0x12);
-  final taggedSourceAddr = Tag.tag(sourceAddress, tagBytes);
-  
-  // Display the address
-  print('Address: ${ByteUtils.bytesToHex(taggedSourceAddr)}');
+  WOTS.stampAddressSuffix(sourceAddress);
+
+  // 40-byte ledger address. Its tag is 20 bytes, not the 12-byte WOTS suffix.
+  final account = WotsAddress.wotsAddressFromBytes(sourcePK);
+  print(ByteUtils.bytesToHex(account.getAddress()));
+  print(TagUtils.addrTagToBase58(account.getTag()));
 }
 ```
 
 ### Advanced WOTS Usage
 
 ```dart
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:mochimo_wots/mochimo_wots.dart';
-import 'package:mochimo_wots/core/utils/byte_utils.dart';
-import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 
 // Custom components generator for deterministic addresses
 Map<String, Uint8List> myComponentsGenerator(Uint8List seed) {
@@ -91,13 +88,14 @@ Map<String, Uint8List> myComponentsGenerator(Uint8List seed) {
 
 void main() {
   final secret = Uint8List(32)..fillRange(0, 32, 0x12);
-  final tag = Uint8List(12)..fillRange(0, 12, 0x34);
+  // 12-byte WOTS suffix. The account tag is a separate 20-byte value.
+  final suffix = Uint8List(Tag.TAG_LENGTH)..fillRange(0, Tag.TAG_LENGTH, 0x34);
 
-  // Generate deterministic address
-  final address = WOTS.generateAddress(tag, secret, myComponentsGenerator);
+  final address = WOTS.generateAddress(suffix, secret, myComponentsGenerator);
 
-  // Validate address
-  final isValid = WOTS.isValid(secret, address);
+  // Validate with the derived signing seed, not the original secret.
+  final privateSeed = myComponentsGenerator(secret)['private_seed']!;
+  final isValid = WOTS.isValid(privateSeed, address);
   print('Address valid: $isValid');
   print('Address: ${ByteUtils.bytesToHex(address)}');
 }
@@ -115,21 +113,19 @@ void main() {
   final buffer = ByteBuffer.allocate(32);
 
   // Write data in different byte orders
-  buffer.order(ByteOrder.BIG_ENDIAN)
-        .putInt(0x12345678);
-  
-  buffer.order(ByteOrder.LITTLE_ENDIAN)
-        .putInt(0x9ABCDEF0);
+  buffer.order(ByteOrder.bigEndian).putInt(0x12345678);
+
+  buffer.order(ByteOrder.littleEndian).putInt(0x9ABCDEF0);
   
   buffer.put(Uint8List.fromList([1, 2, 3, 4]));
 
   // Read data back
   buffer.rewind();
-  buffer.order(ByteOrder.BIG_ENDIAN);
-  final int1 = _readIntFromBuffer(buffer, ByteOrder.BIG_ENDIAN);
-  
-  buffer.order(ByteOrder.LITTLE_ENDIAN);
-  final int2 = _readIntFromBuffer(buffer, ByteOrder.LITTLE_ENDIAN);
+  buffer.order(ByteOrder.bigEndian);
+  final int1 = _readIntFromBuffer(buffer, ByteOrder.bigEndian);
+
+  buffer.order(ByteOrder.littleEndian);
+  final int2 = _readIntFromBuffer(buffer, ByteOrder.littleEndian);
   
   final bytes = Uint8List(4);
   buffer.get(bytes);
@@ -146,7 +142,7 @@ int _readIntFromBuffer(ByteBuffer buffer, ByteOrder order) {
   final b3 = buffer.get_();
   final b4 = buffer.get_();
   
-  if (order == ByteOrder.BIG_ENDIAN) {
+  if (order == ByteOrder.bigEndian) {
     return (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
   } else {
     return (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
@@ -159,33 +155,15 @@ int _readIntFromBuffer(ByteBuffer buffer, ByteOrder order) {
 ```dart
 import 'dart:typed_data';
 import 'package:mochimo_wots/mochimo_wots.dart';
-import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
-  // Create a secret (32 bytes)
   final secret = Uint8List(32)..fillRange(0, 32, 0x56);
-  final tag = Uint8List(12)..fillRange(0, 12, 0x34);
-  
-  // Create the wallet
-  final wallet = WOTSWallet(
-    name: "Test Wallet",
-    secret: secret,
-    addrTag: tag
-  );
+  final tag = Uint8List(WotsAddress.ADDR_TAG_LEN)..fillRange(0, 20, 0x34);
 
-  // Get the public key (2208 bytes)
-  final address = wallet.getAddress();
-  if (address == null) {
-    print('Error: Could not generate wallet address');
-    return;
-  }
-
-  print('Address: ${ByteUtils.bytesToHex(address)}');
-  
-  final tagHex = wallet.getAddrTagHex();
-  if (tagHex != null) {
-    print('Tag: $tagHex');
-  }
+  // tag is the 20-byte account tag. getAddress() returns the 40-byte account.
+  final wallet = WOTSWallet.create('Test Wallet', secret, tag);
+  print(ByteUtils.bytesToHex(wallet.getAddress()!));
+  print(wallet.getAddrTagBase58());
 }
 ```
 
@@ -195,17 +173,12 @@ void main() {
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:mochimo_wots/mochimo_wots.dart';
-import 'package:mochimo_wots/core/utils/byte_utils.dart';
 
 void main() {
   final secret = Uint8List(32)..fillRange(0, 32, 0x56);
-  final tag = Uint8List(12)..fillRange(0, 12, 0x34);
-  
-  final wallet = WOTSWallet(
-    name: "Test Wallet",
-    secret: secret,
-    addrTag: tag
-  );
+  final tag = Uint8List(WotsAddress.ADDR_TAG_LEN)..fillRange(0, 20, 0x34);
+
+  final wallet = WOTSWallet.create('Test Wallet', secret, tag);
 
   try {
     // Message to sign
@@ -230,4 +203,23 @@ void main() {
   }
 }
 ```
+
+### Datagram
+
+```dart
+import 'dart:typed_data';
+import 'package:mochimo_wots/mochimo_wots.dart';
+
+void main() {
+  final account = Uint8List(40);
+  final query = Datagram.balanceQuery(account);
+  final parsed = Datagram.of(query.serialize());
+  print(parsed.getVersion()); // 4
+  print(parsed.getNetwork()); // 0x3905
+  print(parsed.getOperation()); // Operation.balance
+  print(parsed.getPayload().length); // 40
+}
+```
+
+A spend is a separate payload: a 116-byte header, 44 bytes per destination, and a 2208-byte WOTS signature. `MochimoTransaction.sign` builds it, and `Datagram.setPayload` carries it under `Operation.transaction`. See `example/spend_example.dart`.
 

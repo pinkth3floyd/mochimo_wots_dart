@@ -1,8 +1,6 @@
-import 'dart:typed_data';
-import 'package:mochimo_wots/core/protocol/wots.dart' show WOTS;
-import 'package:mochimo_wots/mochimo_wots.dart';
-import 'package:mochimo_wots/core/hasher/mochimo_hasher.dart';
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:mochimo_wots/mochimo_wots.dart';
 
 // Custom components generator for deterministic addresses
 Map<String, Uint8List> myComponentsGenerator(Uint8List seed) {
@@ -48,31 +46,26 @@ Uint8List _generateAddressSeed(Uint8List seed) {
 void main() {
   // Create a secret seed
   final secret = Uint8List(32)..fillRange(0, 32, 0x12);
-  final tag = Uint8List(12)..fillRange(0, 12, 0x34);
+  // This 12-byte value is the WOTS address suffix, not the 20-byte account tag.
+  final suffix = Uint8List(Tag.TAG_LENGTH)..fillRange(0, Tag.TAG_LENGTH, 0x34);
 
   print('Generating deterministic address...');
-  print('Secret (hex): ${_bytesToHex(secret)}');
-  print('Tag (hex): ${_bytesToHex(tag)}');
+  print('Secret: ${ByteUtils.bytesToHex(secret)}');
+  print('WOTS suffix: ${ByteUtils.bytesToHex(suffix)}');
 
-  // Generate deterministic address using custom components generator
-  final address = WOTS.generateAddress(tag, secret, myComponentsGenerator);
+  final address = WOTS.generateAddress(suffix, secret, myComponentsGenerator);
+  final privateSeed = myComponentsGenerator(secret)['private_seed']!;
+  final isValid = WOTS.isValid(privateSeed, address);
 
-  print('\nGenerated address components:');
-  print('Address (first 32 bytes): ${_bytesToHex(address.sublist(0, 32))}...');
+  final account =
+      WotsAddress.wotsAddressFromBytes(address.sublist(0, WOTS.WOTSSIGBYTES));
+  print('WOTS address valid: $isValid');
+  print('WOTS suffix stored: ${ByteUtils.bytesToHex(address.sublist(2196))}');
+  print('Implicit account: ${ByteUtils.bytesToHex(account.getAddress())}');
+  print('Account tag: ${TagUtils.addrTagToBase58(account.getTag())}');
 
-  // Validate address
-  final isValid = WOTS.isValid(secret, address);
-  print('\nAddress validation result: ${isValid ? 'Valid ✓' : 'Invalid ✗'}');
-
-  // Example of how components are generated
   final components = myComponentsGenerator(secret);
-  print('\nGenerated components:');
-  print('Private Seed: ${_bytesToHex(components['private_seed']!)}');
-  print('Public Seed: ${_bytesToHex(components['public_seed']!)}');
-  print('Address Seed: ${_bytesToHex(components['addr_seed']!)}');
-}
-
-// Helper function to convert bytes to hex string
-String _bytesToHex(Uint8List bytes) {
-  return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+  print('Private seed: ${ByteUtils.bytesToHex(components['private_seed']!)}');
+  print('Public seed: ${ByteUtils.bytesToHex(components['public_seed']!)}');
+  print('Address seed: ${ByteUtils.bytesToHex(components['addr_seed']!)}');
 }

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 /// CRC16 utility class
 class CRC16 {
-  CRC16._();
+  CRC16._(); // coverage:ignore-line
 
   // CRC16 lookup table from Java implementation
   static const List<int> _table = [

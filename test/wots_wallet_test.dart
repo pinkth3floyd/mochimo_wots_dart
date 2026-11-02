@@ -1,11 +1,6 @@
 import 'dart:typed_data';
 import 'package:test/test.dart';
 import 'package:mochimo_wots/core/protocol/wots_wallet.dart';
-import 'package:mochimo_wots/core/utils/byte_utils.dart';
-import 'package:mochimo_wots/core/protocol/wots.dart';
-import 'package:mochimo_wots/core/utils/tag_utils.dart';
-import 'package:mochimo_wots/core/utils/crc16.dart';
-import 'package:mochimo_wots/core/protocol/wots_address.dart';
 
 void main() {
   late Uint8List testSecret;
@@ -18,7 +13,7 @@ void main() {
 
   setUp(() {
     testSecret = Uint8List(32)..fillRange(0, 32, 0x12);
-    testTag = Uint8List(12)..fillRange(0, 12, 0x34);
+    testTag = Uint8List(20)..fillRange(0, 20, 0x34);
   });
 
   group('WOTSWallet', () {
@@ -28,7 +23,16 @@ void main() {
       expect(wallet.getName(), equals('test_wallet'));
       expect(wallet.getSecret()?.length, equals(32));
       expect(wallet.getWots()?.length, equals(2208));
-      expect(wallet.getAddrTag()?.length, equals(12));
+      expect(wallet.getAddrTag()?.length, equals(20));
+    });
+
+    test('should create a deterministic wallet without a random generator', () {
+      wallet = WOTSWallet.create('derived', testSecret, testTag);
+      final message = Uint8List.fromList('Hello, Mochimo!'.codeUnits);
+      final signature = wallet.sign(message);
+      expect(signature.length, equals(2144));
+      expect(wallet.verify(message, signature), isTrue);
+      expect(wallet.getSecret(), isNot(equals(testSecret)));
     });
 
     test('should throw on invalid secret length', () {
@@ -66,8 +70,8 @@ void main() {
       final addrTagHex = wallet.getAddrTagHex();
       final addrTagBase58 = wallet.getAddrTagBase58();
 
-      expect(addrTag?.length, equals(12));
-      expect(addrTagHex?.length, equals(24)); // 12 bytes = 24 hex chars
+      expect(addrTag?.length, equals(20));
+      expect(addrTagHex?.length, equals(40)); // 20 bytes = 40 hex chars
       expect(addrTagBase58, isNotNull);
     });
 
@@ -83,8 +87,7 @@ void main() {
       expect(wots?.length, equals(2208));
       expect(wotsHex?.length, equals(4416)); // 2208 bytes = 4416 hex chars
       expect(address?.length, equals(40));
-      expect(addrHash?.length,
-          equals(28)); // Updated: TXADDRLEN - ADDR_TAG_LEN = 28
+      expect(addrHash?.length, equals(20));
     });
 
     test('should sign and verify messages', () {
